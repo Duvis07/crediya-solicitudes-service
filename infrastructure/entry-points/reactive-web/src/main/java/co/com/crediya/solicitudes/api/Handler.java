@@ -37,7 +37,7 @@ public class Handler {
                 .doOnError(error -> log.error("Error creating application: {}", error.getMessage()));
     }
     
-    public Mono<ServerResponse> getAllApplications(ServerRequest request) {
+    public Mono<ServerResponse> getAllApplications(ServerRequest serverRequest) {
         return applicationUseCase.getAllApplications()
                 .map(applicationDtoMapper::toResponse)
                 .collectList()
