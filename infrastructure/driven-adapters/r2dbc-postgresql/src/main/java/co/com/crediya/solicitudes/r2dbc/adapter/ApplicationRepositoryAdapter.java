@@ -29,5 +29,4 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
         return applicationEntityRepository.findAll()
                 .map(applicationMapper::toDomain);
     }
-
 }
