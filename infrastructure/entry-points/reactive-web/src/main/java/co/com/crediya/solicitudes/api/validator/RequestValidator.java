@@ -16,14 +16,16 @@ public class RequestValidator {
     private final Validator validator;
     
     public <T> Mono<T> validate(T request, String objectName) {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(request, objectName);
-        validator.validate(request, bindingResult);
-        
-        if (bindingResult.hasErrors()) {
-            log.warn("Validation errors found for {}: {}", objectName, bindingResult.getAllErrors());
-            return Mono.error(new ValidationException("Validation failed", bindingResult));
-        }
-        
-        return Mono.just(request);
+        return Mono.fromCallable(() -> {
+            BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(request, objectName);
+            validator.validate(request, bindingResult);
+            
+            if (bindingResult.hasErrors()) {
+                log.warn("Validation errors found for {}: {}", objectName, bindingResult.getAllErrors());
+                throw new ValidationException("Validation failed", bindingResult);
+            }
+            
+            return request;
+        }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
     }
 }
