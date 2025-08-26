@@ -1,0 +1,64 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: "solicitudes-service"
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  devtools:
+    add-properties: false
+  
+  r2dbc:
+    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_db}
+    username: ${R2DBC_USERNAME:postgres}
+    password: ${R2DBC_PASSWORD:nueva_contraseña}
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
+  
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      continue-on-error: false
+  
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+
+#logging:
+#  level:
+#    co.com.crediya.solicitudes: DEBUG
+#    org.springframework.r2dbc: DEBUG
+#    org.springframework.security: DEBUG
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Configuración personalizada
+crediya:
+  solicitudes:
+    estado-inicial: "Pendiente de revision"
+    validacion-automatica: true
+
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8081"
+
