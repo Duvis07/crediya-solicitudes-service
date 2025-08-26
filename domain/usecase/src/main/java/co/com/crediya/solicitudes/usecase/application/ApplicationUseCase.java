@@ -11,7 +11,6 @@ import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
