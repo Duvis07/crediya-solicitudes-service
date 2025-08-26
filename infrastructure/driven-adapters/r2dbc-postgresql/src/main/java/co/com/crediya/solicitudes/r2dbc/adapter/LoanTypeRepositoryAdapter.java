@@ -11,21 +11,10 @@ import reactor.core.publisher.Mono;
 @Repository
 @RequiredArgsConstructor
 public class LoanTypeRepositoryAdapter implements LoanTypeRepository {
-    
+
     private final LoanTypeEntityRepository loanTypeEntityRepository;
     private final LoanTypeMapper loanTypeMapper;
-    
-    @Override
-    public Mono<Boolean> existsById(Long id) {
-        return loanTypeEntityRepository.existsById(id);
-    }
-    
-    @Override
-    public Mono<LoanType> findById(Long id) {
-        return loanTypeEntityRepository.findById(id)
-                .map(loanTypeMapper::toDomain);
-    }
-    
+
     @Override
     public Mono<LoanType> findByName(String name) {
         return loanTypeEntityRepository.findByName(name)
