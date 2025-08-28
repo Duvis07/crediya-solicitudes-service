@@ -1,47 +1,251 @@
-# Proyecto Base Implementando Clean Architecture
+# CrediYa - Microservicio de Solicitudes
 
-## Antes de Iniciar
+**Microservicio para gestión de solicitudes de préstamos implementando Clean Architecture con Spring Boot WebFlux**
 
-Empezaremos por explicar los diferentes componentes del proyectos y partiremos de los componentes externos, continuando con los componentes core de negocio (dominio) y por �ltimo el inicio y configuraci�n de la aplicaci�n.
+## 📋 Descripción del Proyecto
 
-Lee el art�culo [Clean Architecture � Aislando los detalles](https://medium.com/bancolombia-tech/clean-architecture-aislando-los-detalles-4f9530f35d7a)
+CrediYa es una plataforma que digitaliza y optimiza la gestión de solicitudes de préstamos personales, eliminando procesos manuales y presenciales. Este microservicio maneja específicamente las **solicitudes de préstamos** (HU2), permitiendo a los clientes enviar solicitudes con información del préstamo deseado para evaluación automatizada.
 
-# Arquitectura
+### Funcionalidades Principales
+
+- ✅ **Registro de Solicitudes**: Los clientes pueden enviar solicitudes de préstamo con documento, email, monto, plazo y tipo de préstamo
+- ✅ **Validación Automática**: Validación de datos de entrada, montos (100k-50M), plazos (6-60 meses) y formatos
+- ✅ **Gestión de Estados**: Las solicitudes inician con estado "Pendiente de revisión"
+- ✅ **Tipos de Préstamo**: Soporte para PERSONAL, MORTGAGE, VEHICLE, MICROCREDIT, BUSINESS
+- ✅ **API Reactiva**: Implementado con Spring Boot WebFlux para alta concurrencia
+
+## 🏗️ Arquitectura
+
+### Clean Architecture (Hexagonal)
 
 ![Clean Architecture](https://miro.medium.com/max/1400/1*ZdlHz8B0-qu9Y-QO3AXR_w.png)
 
-## Domain
+```
+solicitudes-service/
+├── applications/app-service/          # 🚀 Aplicación principal
+├── domain/
+│   ├── model/                         # 🏛️ Entidades del dominio
+│   └── usecase/                       # 📋 Casos de uso
+└── infrastructure/
+    ├── driven-adapters/
+    │   └── r2dbc-postgresql/          # 🗄️ Persistencia reactiva
+    └── entry-points/
+        └── reactive-web/              # 🌐 API REST reactiva
+```
 
-Es el m�dulo m�s interno de la arquitectura, pertenece a la capa del dominio y encapsula la l�gica y reglas del negocio mediante modelos y entidades del dominio.
+### Stack Tecnológico
 
-## Usecases
+- **Framework**: Spring Boot 3.5.4 con WebFlux (Programación Reactiva)
+- **Base de Datos**: PostgreSQL con R2DBC (Acceso reactivo)
+- **Mapeo**: MapStruct para conversión de DTOs
+- **Validación**: Bean Validation con validadores personalizados
+- **Documentación**: OpenAPI 3 / Swagger
+- **Testing**: JUnit 5, Mockito, WebTestClient
+- **Calidad**: Jacoco (Coverage), PiTest (Mutation Testing), SonarLint
 
-Este m�dulo gradle perteneciente a la capa del dominio, implementa los casos de uso del sistema, define l�gica de aplicaci�n y reacciona a las invocaciones desde el m�dulo de entry points, orquestando los flujos hacia el m�dulo de entities.
+## 🚀 Inicio Rápido
 
-## Infrastructure
+### Prerrequisitos
 
-### Helpers
+- Java 17+
+- PostgreSQL 12+
+- Gradle 8+
 
-En el apartado de helpers tendremos utilidades generales para los Driven Adapters y Entry Points.
+### Configuración
 
-Estas utilidades no est�n arraigadas a objetos concretos, se realiza el uso de generics para modelar comportamientos
-gen�ricos de los diferentes objetos de persistencia que puedan existir, este tipo de implementaciones se realizan
-basadas en el patr�n de dise�o [Unit of Work y Repository](https://medium.com/@krzychukosobudzki/repository-design-pattern-bc490b256006)
+1. **Clonar el repositorio**
+```bash
+git clone <repository-url>
+cd solicitudes-service
+```
 
-Estas clases no puede existir solas y debe heredarse su compartimiento en los **Driven Adapters**
+2. **Configurar base de datos**
+```sql
+-- Crear base de datos
+CREATE DATABASE crediya_solicitudes;
 
-### Driven Adapters
+-- Configurar usuario (opcional)
+CREATE USER crediya_user WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE crediya_solicitudes TO crediya_user;
+```
 
-Los driven adapter representan implementaciones externas a nuestro sistema, como lo son conexiones a servicios rest,
-soap, bases de datos, lectura de archivos planos, y en concreto cualquier origen y fuente de datos con la que debamos
-interactuar.
+3. **Configurar variables de entorno**
+```bash
+# .env (ejemplo)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=crediya_solicitudes
+DB_USER=crediya_user
+DB_PASSWORD=password
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
 
-### Entry Points
+4. **Ejecutar la aplicación**
+```bash
+# Compilar y ejecutar
+./gradlew bootRun
 
-Los entry points representan los puntos de entrada de la aplicaci�n o el inicio de los flujos de negocio.
+# O ejecutar tests
+./gradlew test
 
-## Application
+# Generar reporte de cobertura
+./gradlew jacocoTestReport
+```
 
-Este m�dulo es el m�s externo de la arquitectura, es el encargado de ensamblar los distintos m�dulos, resolver las dependencias y crear los beans de los casos de use (UseCases) de forma autom�tica, inyectando en �stos instancias concretas de las dependencias declaradas. Adem�s inicia la aplicaci�n (es el �nico m�dulo del proyecto donde encontraremos la funci�n �public static void main(String[] args)�.
+## 📚 API Documentation
 
-**Los beans de los casos de uso se disponibilizan automaticamente gracias a un '@ComponentScan' ubicado en esta capa.**
+### Swagger UI
+Una vez iniciada la aplicación, accede a la documentación interactiva:
+
+- **Swagger UI**: http://localhost:8081/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8081/v3/api-docs
+
+### Endpoints Principales
+
+#### POST /api/v1/solicitud
+Crear una nueva solicitud de préstamo
+
+**Request Body:**
+```json
+{
+  "documentId": "12345678",
+  "email": "cliente@example.com",
+  "amount": 500000,
+  "term": 24,
+  "loanType": "PERSONAL"
+}
+```
+
+**Response:**
+```json
+{
+  "applicationId": 1,
+  "documentId": "12345678",
+  "email": "cliente@example.com",
+  "amount": 500000,
+  "term": 24,
+  "stateId": 1,
+  "loanTypeId": 1,
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-15T10:30:00"
+}
+```
+
+### Validaciones
+
+- **documentId**: Requerido, no vacío
+- **email**: Formato de email válido
+- **amount**: Entre 100,000 y 50,000,000
+- **term**: Entre 6 y 60 meses
+- **loanType**: Uno de: PERSONAL, MORTGAGE, VEHICLE, MICROCREDIT, BUSINESS
+
+## 🧪 Testing
+
+### Ejecutar Tests
+```bash
+# Todos los tests
+./gradlew test
+
+# Tests específicos
+./gradlew :domain:usecase:test
+./gradlew :infrastructure:entry-points:reactive-web:test
+
+# Con reporte de cobertura
+./gradlew test jacocoTestReport
+```
+
+### Cobertura de Código
+Los reportes se generan en:
+- `build/reports/jacoco/test/html/index.html`
+- Cobertura objetivo: >80%
+
+## 📁 Estructura del Proyecto
+
+### Domain Layer
+- **`domain/model/`**: Entidades del dominio (Application, LoanType, State)
+- **`domain/usecase/`**: Lógica de negocio (ApplicationUseCase)
+
+### Infrastructure Layer
+- **`driven-adapters/r2dbc-postgresql/`**: Repositorios reactivos y mappers
+- **`entry-points/reactive-web/`**: Controllers, DTOs y configuración web
+
+### Application Layer
+- **`applications/app-service/`**: Configuración principal y punto de entrada
+
+## 🔧 Configuración
+
+### application.yml
+```yaml
+server:
+  port: 8081
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/crediya_solicitudes
+    username: ${DB_USER:crediya_user}
+    password: ${DB_PASSWORD:password}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+logging:
+  level:
+    co.com.crediya: DEBUG
+```
+
+## 🔒 Seguridad
+
+### Headers de Seguridad
+- Content-Security-Policy
+- Strict-Transport-Security
+- X-Content-Type-Options
+- Cache-Control
+
+### CORS
+Configurado para permitir orígenes específicos en desarrollo y producción.
+
+## 📊 Monitoreo y Logs
+
+### Logs
+- Nivel DEBUG para paquetes de la aplicación
+- Trazabilidad de operaciones críticas
+- Manejo centralizado de excepciones
+
+### Métricas
+- Actuator endpoints disponibles
+- Métricas de rendimiento de WebFlux
+- Monitoreo de base de datos R2DBC
+
+## 🚀 Despliegue
+
+### Docker
+```dockerfile
+FROM openjdk:17-jre-slim
+COPY build/libs/solicitudes-service.jar app.jar
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+## 🤝 Contribución
+
+### Estándares de Código
+- SonarLint para validación
+- Cobertura mínima: 80%
+- Tests unitarios obligatorios
+- Documentación de APIs con OpenAPI
+
+### Git Flow
+- Feature branches para nuevas funcionalidades
+
+## 📋 Requerimientos de Negocio
+
+### HU2 - Registrar Solicitud de Préstamo
+**Como cliente, quiero enviar mi solicitud de préstamo con la información necesaria (monto y plazo deseado) para que CrediYa pueda evaluarla**
+
+#### Criterios de Aceptación:
+- ✅ Endpoint POST /api/v1/solicitud
+- ✅ Validación de información del cliente y préstamo
+- ✅ Transacciones reactivas con WebFlux
+- ✅ Logs de trazabilidad
+- ✅ Manejo de excepciones
+- ✅ Estado inicial "Pendiente de revisión"
+- ✅ Validación de tipos de préstamo existentes

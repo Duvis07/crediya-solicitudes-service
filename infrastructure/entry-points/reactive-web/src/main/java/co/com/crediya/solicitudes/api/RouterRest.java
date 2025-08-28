@@ -23,7 +23,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 @Configuration
 @RequiredArgsConstructor
 public class RouterRest {
-    
+
     @Bean
     @RouterOperations({
             @RouterOperation(
@@ -81,11 +81,11 @@ public class RouterRest {
     })
     public RouterFunction<ServerResponse> routerFunction(Handler handler) {
         return route(POST("/api/v1/solicitud")
-                .and(accept(MediaType.APPLICATION_JSON))
-                .and(contentType(MediaType.APPLICATION_JSON)), 
+                        .and(accept(MediaType.APPLICATION_JSON))
+                        .and(contentType(MediaType.APPLICATION_JSON)),
                 handler::createApplication)
                 .andRoute(GET("/api/v1/solicitud")
-                        .and(accept(MediaType.APPLICATION_JSON)),
+                                .and(accept(MediaType.APPLICATION_JSON)),
                         handler::getAllApplications);
     }
 }
