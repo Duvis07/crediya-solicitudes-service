@@ -53,12 +53,6 @@ management:
       prometheus:
         enabled: true
 
-# Configuración personalizada
-crediya:
-  solicitudes:
-    estado-inicial: "Pendiente de revision"
-    validacion-automatica: true
-
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8081"
 
