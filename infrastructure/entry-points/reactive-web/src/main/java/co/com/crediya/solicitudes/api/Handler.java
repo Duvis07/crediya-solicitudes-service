@@ -1,15 +1,14 @@
 package co.com.crediya.solicitudes.api;
 
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
-import co.com.crediya.solicitudes.api.exceptions.ValidationException;
-import co.com.crediya.solicitudes.model.application.Application;
+import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
+import co.com.crediya.solicitudes.api.validator.RequestValidator;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Validator;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
@@ -20,20 +19,16 @@ import reactor.core.publisher.Mono;
 public class Handler {
     
     private final ApplicationUseCase applicationUseCase;
-    private final Validator validator;
+    private final ApplicationDtoMapper applicationDtoMapper;
+    private final RequestValidator requestValidator;
 
     public Mono<ServerResponse> createApplication(ServerRequest request) {
         return request.bodyToMono(CreateApplicationRequest.class)
                 .doOnNext(req -> log.info("Received application request for document: {}", req.getDocumentId()))
-                .flatMap(this::validateRequest)
-                .flatMap(req -> {
-                    Application application = Application.builder()
-                            .documentId(req.getDocumentId())
-                            .email(req.getEmail())
-                            .amount(req.getAmount())
-                            .term(req.getTerm())
-                            .build();
-                    return applicationUseCase.createRequest(application, req.getLoanType());
+                .flatMap(req -> requestValidator.validate(req, "createApplicationRequest"))
+                .flatMap(validatedReq -> {
+                    var application = applicationDtoMapper.toDomain(validatedReq);
+                    return applicationUseCase.createApplication(application, validatedReq.getLoanType());
                 })
                 .flatMap(application -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
@@ -42,17 +37,17 @@ public class Handler {
                 .doOnError(error -> log.error("Error creating application: {}", error.getMessage()));
     }
     
-    private Mono<CreateApplicationRequest> validateRequest(CreateApplicationRequest request) {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(request, "createApplicationRequest");
-        validator.validate(request, bindingResult);
-        
-        if (bindingResult.hasErrors()) {
-            log.warn("Validation errors found: {}", bindingResult.getAllErrors());
-            return Mono.error(new ValidationException("Validation failed", bindingResult));
-        }
-        
-        return Mono.just(request);
+    public Mono<ServerResponse> getAllApplications(ServerRequest serverRequest) {
+        return applicationUseCase.getAllApplications()
+                .map(applicationDtoMapper::toResponse)
+                .collectList()
+                .flatMap(applications -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(applications))
+                .onErrorResume(error -> {
+                    log.error("Error retrieving applications: {}", error.getMessage());
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .bodyValue("Error retrieving applications");
+                });
     }
-    
-    
 }

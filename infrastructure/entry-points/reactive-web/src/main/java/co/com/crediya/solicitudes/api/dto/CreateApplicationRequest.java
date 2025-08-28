@@ -2,8 +2,6 @@ package co.com.crediya.solicitudes.api.dto;
 
 import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import co.com.crediya.solicitudes.api.config.LoanTypeDeserializer;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +18,7 @@ public class CreateApplicationRequest {
     
     @NotBlank(message = "Document ID is required")
     @Size(min = 8, max = 15, message = "Document ID must be between 8 and 15 characters")
-    @Pattern(regexp = "^[0-9]+$", message = "Document ID must contain only numbers")
+    @Pattern(regexp = "^\\d+$", message = "Document ID must contain only numbers")
     @JsonProperty("documentId")
     private String documentId;
     
@@ -43,6 +41,5 @@ public class CreateApplicationRequest {
     
     @NotNull(message = "Loan type is required")
     @JsonProperty("loanType")
-    @JsonDeserialize(using = LoanTypeDeserializer.class)
     private LoanTypeEnum loanType;
 }

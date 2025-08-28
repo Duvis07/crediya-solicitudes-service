@@ -7,6 +7,6 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface LoanTypeEntityRepository extends ReactiveCrudRepository<LoanTypeEntity, Long> {
-    Mono<Boolean> existsById(Long id);
+
     Mono<LoanTypeEntity> findByName(String name);
 }
