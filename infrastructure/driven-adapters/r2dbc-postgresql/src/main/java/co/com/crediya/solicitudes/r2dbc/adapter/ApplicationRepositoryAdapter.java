@@ -6,6 +6,7 @@ import co.com.crediya.solicitudes.r2dbc.repository.ApplicationEntityRepository;
 import co.com.crediya.solicitudes.r2dbc.mapper.ApplicationMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -17,6 +18,7 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
     private final ApplicationMapper applicationMapper;
 
     @Override
+    @Transactional
     public Mono<Application> save(Application application) {
         return Mono.just(application)
                 .map(applicationMapper::toEntity)
