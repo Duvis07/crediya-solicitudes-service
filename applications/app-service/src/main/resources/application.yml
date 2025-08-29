@@ -10,7 +10,7 @@ spring:
     add-properties: false
   
   r2dbc:
-    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_db}
+    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_solicitudes_db}
     username: ${R2DBC_USERNAME:postgres}
     password: ${R2DBC_PASSWORD:nueva_contraseña}
     pool:
