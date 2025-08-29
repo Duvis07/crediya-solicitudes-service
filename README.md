@@ -268,3 +268,4 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 - ✅ Manejo de excepciones
 - ✅ Estado inicial "Pendiente de revisión"
 - ✅ Validación de tipos de préstamo existentes
+- ✅ Tests unitarios implementados
