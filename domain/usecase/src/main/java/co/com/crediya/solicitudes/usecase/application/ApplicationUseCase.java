@@ -7,7 +7,10 @@ import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import co.com.crediya.solicitudes.model.state.State;
 import co.com.crediya.solicitudes.model.application.Application;
+import co.com.crediya.solicitudes.model.state.ApplicationStatus;
 import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
+import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
+import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
@@ -22,13 +25,15 @@ public class ApplicationUseCase {
     private final ApplicationRepository applicationRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final StateRepository stateRepository;
+    private final ClientValidationRepository clientValidationRepository;
 
     private static final Logger log = Logger.getLogger(ApplicationUseCase.class.getName());
 
-    private static final String PENDING_STATUS = "Pendiente de revision";
-
     public Mono<Application> createApplication(Application application, LoanTypeEnum loanType) {
-        return Mono.zip(getLoanTypeId(loanType), getPendingStatus())
+        log.info("Creating application for client: " + application.getDocumentId());
+
+        return validateClient(application)
+                .then(Mono.zip(getLoanTypeId(loanType), getPendingStatus()))
                 .map(tuple -> {
                     LocalDateTime now = LocalDateTime.now();
                     return application.toBuilder()
@@ -43,6 +48,18 @@ public class ApplicationUseCase {
                 .doOnError(error -> log.severe("Error creating application: " + error.getMessage()));
     }
 
+    private Mono<Void> validateClient(Application application) {
+        log.info("Validating client exists: " + application.getDocumentId());
+
+        return clientValidationRepository.validateClientExists(application.getDocumentId())
+                .filter(exists -> exists)
+                .switchIfEmpty(Mono.error(new ClientNotFoundException(
+                        "Client not found with documentId: " + application.getDocumentId())))
+                .then()
+                .doOnSuccess(v -> log.info("Client validation successful for: " + application.getDocumentId()))
+                .doOnError(error -> log.severe("Client validation failed: " + error.getMessage()));
+    }
+
     private Mono<Long> getLoanTypeId(LoanTypeEnum loanType) {
         log.info("Looking up loan type: " + loanType.getDisplayName());
         return loanTypeRepository.findByName(loanType.getDisplayName())
@@ -52,11 +69,10 @@ public class ApplicationUseCase {
     }
 
     private Mono<Long> getPendingStatus() {
-        log.info("Looking up pending status: " + PENDING_STATUS);
-        return stateRepository.findByName(PENDING_STATUS)
+        return stateRepository.findByName(ApplicationStatus.PENDING_REVIEW.getDescription())
                 .map(State::getStateId)
                 .doOnSuccess(id -> log.info("Found pending status ID: " + id))
-                .switchIfEmpty(Mono.error(new IllegalStateException("Status 'Pendiente de revision' not found")));
+                .switchIfEmpty(Mono.error(new IllegalStateException("Status '" + ApplicationStatus.PENDING_REVIEW.getDescription() + "' not found")));
     }
 
     public Flux<Application> getAllApplications() {

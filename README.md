@@ -10,9 +10,11 @@ CrediYa es una plataforma que digitaliza y optimiza la gestión de solicitudes d
 
 - ✅ **Registro de Solicitudes**: Los clientes pueden enviar solicitudes de préstamo con documento, email, monto, plazo y tipo de préstamo
 - ✅ **Validación Automática**: Validación de datos de entrada, montos (100k-50M), plazos (6-60 meses) y formatos
+- ✅ **Validación de Cliente**: Integración con servicio de autenticación para verificar existencia del cliente
 - ✅ **Gestión de Estados**: Las solicitudes inician con estado "Pendiente de revisión"
 - ✅ **Tipos de Préstamo**: Soporte para PERSONAL, MORTGAGE, VEHICLE, MICROCREDIT, BUSINESS
 - ✅ **API Reactiva**: Implementado con Spring Boot WebFlux para alta concurrencia
+- ✅ **Patrones de Resilencia**: Circuit Breaker, Retry y Timeout para comunicación entre servicios
 
 ## 🏗️ Arquitectura
 
@@ -28,7 +30,8 @@ solicitudes-service/
 │   └── usecase/                       # 📋 Casos de uso
 └── infrastructure/
     ├── driven-adapters/
-    │   └── r2dbc-postgresql/          # 🗄️ Persistencia reactiva
+    │   ├── r2dbc-postgresql/          # 🗄️ Persistencia reactiva
+    │   └── webclient-auth/            # 🔗 Cliente HTTP para autenticación
     └── entry-points/
         └── reactive-web/              # 🌐 API REST reactiva
 ```
@@ -37,6 +40,7 @@ solicitudes-service/
 
 - **Framework**: Spring Boot 3.5.4 con WebFlux (Programación Reactiva)
 - **Base de Datos**: PostgreSQL con R2DBC (Acceso reactivo)
+- **Resilencia**: Resilience4j (Circuit Breaker, Retry, Timeout)
 - **Mapeo**: MapStruct para conversión de DTOs
 - **Validación**: Bean Validation con validadores personalizados
 - **Documentación**: OpenAPI 3 / Swagger
@@ -174,24 +178,12 @@ Los reportes se generan en:
 
 ## 🔧 Configuración
 
-### application.yml
-```yaml
-server:
-  port: 8081
+El microservicio utiliza variables de entorno para configuración flexible:
 
-spring:
-  r2dbc:
-    url: r2dbc:postgresql://localhost:5432/crediya_solicitudes
-    username: ${DB_USER:crediya_user}
-    password: ${DB_PASSWORD:password}
-
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-
-logging:
-  level:
-    co.com.crediya: DEBUG
-```
+- **Puerto**: 8081 (configurable con `SERVER_PORT`)
+- **Base de datos**: PostgreSQL con R2DBC reactivo
+- **Servicio de autenticación**: Configurable con `AUTH_SERVICE_URL`
+- **CORS**: Orígenes permitidos configurables para desarrollo/producción
 
 ## 🔒 Seguridad
 
@@ -204,17 +196,44 @@ logging:
 ### CORS
 Configurado para permitir orígenes específicos en desarrollo y producción.
 
+## 🛡️ Patrones de Resilencia
+
+El microservicio implementa patrones de resilencia para garantizar alta disponibilidad en la comunicación con servicios externos:
+
+### Circuit Breaker
+Protege el sistema evitando llamadas a servicios que están fallando:
+- Se abre automáticamente cuando detecta muchos fallos
+- Permite recuperación gradual del servicio
+- Evita cascada de errores en el sistema
+
+### Retry Policy  
+Reintenta operaciones fallidas de forma inteligente:
+- **3 intentos máximo** por operación
+- **8 segundos de espera** entre reintentos
+- Solo reintenta errores de conexión específicos
+
+### Timeout Control
+Evita operaciones que se cuelguen indefinidamente:
+- **30 segundos máximo** por operación
+- Libera recursos automáticamente
+- Mejora la experiencia del usuario
+
+### Respuestas de Error
+- **HTTP 503 Service Unavailable**: Servicio de autenticación caído
+- **HTTP 404 Not Found**: Cliente no existe (servicio funcionando)
+- **Fallback automático**: Respuesta controlada cuando fallan todos los reintentos
+
 ## 📊 Monitoreo y Logs
 
 ### Logs
-- Nivel DEBUG para paquetes de la aplicación
-- Trazabilidad de operaciones críticas
+- Trazabilidad completa de operaciones
 - Manejo centralizado de excepciones
+- Logs de patrones de resilencia
 
 ### Métricas
-- Actuator endpoints disponibles
-- Métricas de rendimiento de WebFlux
-- Monitoreo de base de datos R2DBC
+- Endpoints de salud disponibles
+- Métricas de rendimiento reactivo
+- Monitoreo de patrones de resilencia
 
 ## 🚀 Despliegue
 
@@ -249,3 +268,4 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 - ✅ Manejo de excepciones
 - ✅ Estado inicial "Pendiente de revisión"
 - ✅ Validación de tipos de préstamo existentes
+- ✅ Tests unitarios implementados

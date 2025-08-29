@@ -8,9 +8,12 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   devtools:
     add-properties: false
+  aop:
+    auto: true
+    proxy-target-class: true
   
   r2dbc:
-    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_db}
+    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_solicitudes_db}
     username: ${R2DBC_USERNAME:postgres}
     password: ${R2DBC_PASSWORD:nueva_contraseña}
     pool:
@@ -55,4 +58,34 @@ management:
 
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8081"
+
+# Authentication service configuration
+auth-service:
+  base-url: ${AUTH_SERVICE_URL:http://localhost:8080}
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      auth-service:
+        sliding-window-size: 20
+        failure-rate-threshold: 80
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+  retry:
+    instances:
+      auth-service:
+        max-attempts: 3
+        wait-duration: 8s
+        exponential-backoff-multiplier: 1
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.net.ConnectException
+  timelimiter:
+    instances:
+      auth-service:
+        timeout-duration: 30s
+
 
