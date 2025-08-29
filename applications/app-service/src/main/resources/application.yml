@@ -56,3 +56,7 @@ management:
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8081"
 
+# Authentication service configuration
+auth-service:
+  base-url: ${AUTH_SERVICE_URL:http://localhost:8080}
+
