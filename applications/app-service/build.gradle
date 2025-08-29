@@ -1,13 +1,22 @@
 apply plugin: 'org.springframework.boot'
 
 dependencies {
-	implementation project(':reactive-web')
-	implementation 'org.reactivecommons.utils:object-mapper:0.1.0'
-	implementation project(':r2dbc-postgresql')
+    // --- Módulos internos ---
+    implementation project(':reactive-web')
+    implementation project(':r2dbc-postgresql')
+    implementation project(':webclient-auth')
     implementation project(':model')
     implementation project(':usecase')
+
+    // --- Dependencias externas ---
+    implementation 'org.reactivecommons.utils:object-mapper:0.1.0'
     implementation 'org.springframework.boot:spring-boot-starter'
-    runtimeOnly('org.springframework.boot:spring-boot-devtools')
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // --- Dependencias de desarrollo ---
+    runtimeOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // --- Dependencias de pruebas ---
     testImplementation 'com.tngtech.archunit:archunit:1.4.1'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 }
@@ -18,11 +27,11 @@ tasks.register('explodedJar', Copy) {
 }
 
 jar {
-    // To disable the *-plain.jar
+    // Deshabilita la generación del *-plain.jar
     enabled = false
 }
 
 bootJar {
-    // Sets output jar name
+    // Define el nombre del archivo .jar de salida
     archiveFileName = "${project.getParent().getName()}.${archiveExtension.get()}"
 }
