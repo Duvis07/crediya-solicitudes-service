@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.config;
 
-import co.com.crediya.solicitudes.model.client.gateways.ClientValidationGateway;
+import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
 import co.com.crediya.solicitudes.webclient.AuthServiceClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +14,7 @@ public class WebClientAdapterConfig {
     private String authServiceBaseUrl;
 
     @Bean
-    public ClientValidationGateway clientValidationGateway() {
+    public ClientValidationRepository clientValidationGateway() {
         WebClient webClient = WebClient.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
                 .build();
