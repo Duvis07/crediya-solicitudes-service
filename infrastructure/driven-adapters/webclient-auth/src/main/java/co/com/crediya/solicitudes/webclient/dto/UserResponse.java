@@ -1,5 +1,6 @@
 package co.com.crediya.solicitudes.webclient.dto;
 
+import co.com.crediya.solicitudes.model.client.UserType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,7 +40,7 @@ public class UserResponse {
     private Double baseSalary;
     
     @JsonProperty("userType")
-    private String userType;
+    private UserType userType;
     
     @JsonProperty("createdAt")
     private LocalDateTime createdAt;

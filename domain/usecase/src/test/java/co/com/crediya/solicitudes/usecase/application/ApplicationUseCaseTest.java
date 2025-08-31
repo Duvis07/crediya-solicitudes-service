@@ -82,7 +82,7 @@ class ApplicationUseCaseTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(clientValidationRepository.validateClientExists("12345678")).thenReturn(Mono.just(true));
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678")).thenReturn(Mono.just("test@example.com"));
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.just(loanType));
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.just(state));
         when(applicationRepository.save(any(Application.class))).thenReturn(Mono.just(savedApplication));
@@ -125,7 +125,7 @@ class ApplicationUseCaseTest {
                 .name("Pendiente de revision")
                 .build();
 
-        when(clientValidationRepository.validateClientExists("12345678")).thenReturn(Mono.just(true));
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678")).thenReturn(Mono.just("test@example.com"));
         when(loanTypeRepository.findByName("Prestamo Personal"))
                 .thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision"))
@@ -158,7 +158,7 @@ class ApplicationUseCaseTest {
                 .name("Prestamo Personal")
                 .build();
 
-        when(clientValidationRepository.validateClientExists("12345678")).thenReturn(Mono.just(true));
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678")).thenReturn(Mono.just("test@example.com"));
         when(loanTypeRepository.findByName("Prestamo Personal"))
                 .thenReturn(Mono.just(loanType));
         when(stateRepository.findByName("Pendiente de revision"))
@@ -238,7 +238,7 @@ class ApplicationUseCaseTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(clientValidationRepository.validateClientExists("12345678")).thenReturn(Mono.just(true));
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678")).thenReturn(Mono.just("test@example.com"));
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.just(loanType));
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.just(state));
         when(applicationRepository.save(any(Application.class))).thenReturn(Mono.just(savedApplication));
@@ -269,8 +269,11 @@ class ApplicationUseCaseTest {
                 .term(12)
                 .build();
 
-        // Mock client validation to return false, but also mock other dependencies to avoid NPE
-        when(clientValidationRepository.validateClientExists("99999999")).thenReturn(Mono.just(false));
+        // Mock client validation to throw ClientNotFoundException
+        when(clientValidationRepository.getUserEmailByDocumentId("99999999"))
+                .thenReturn(Mono.error(new ClientNotFoundException("Client not found with documentId: 99999999")));
+        
+        // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
 
@@ -287,7 +290,7 @@ class ApplicationUseCaseTest {
                 .verify();
 
         // Verify interactions - client validation should be called
-        verify(clientValidationRepository).validateClientExists("99999999");
+        verify(clientValidationRepository).getUserEmailByDocumentId("99999999");
     }
 
     @Test
@@ -300,8 +303,10 @@ class ApplicationUseCaseTest {
                 .term(12)
                 .build();
 
-        // Mock client validation to return empty, but also mock other dependencies to avoid NPE
-        when(clientValidationRepository.validateClientExists("88888888")).thenReturn(Mono.empty());
+        // Mock client validation to return empty
+        when(clientValidationRepository.getUserEmailByDocumentId("88888888")).thenReturn(Mono.empty());
+        
+        // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
 
@@ -318,6 +323,74 @@ class ApplicationUseCaseTest {
                 .verify();
 
         // Verify interactions - client validation should be called
-        verify(clientValidationRepository).validateClientExists("88888888");
+        verify(clientValidationRepository).getUserEmailByDocumentId("88888888");
+    }
+
+    @Test
+    void createApplication_ShouldThrowClientNotFoundException_WhenOwnershipValidationFails() {
+        // Arrange
+        Application inputApplication = Application.builder()
+                .documentId("12345678")
+                .email("wrong@example.com")  // Different email than registered
+                .amount(new BigDecimal("500000"))
+                .term(12)
+                .build();
+
+        // Mock client validation to return different email
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678"))
+                .thenReturn(Mono.just("correct@example.com"));
+        
+        // Mock other dependencies to avoid NPE (won't be called due to early error)
+        when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
+
+        // Act
+        Mono<Application> result = applicationUseCase.createApplication(
+                inputApplication,
+                LoanTypeEnum.PERSONAL
+        );
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof ClientNotFoundException &&
+                        throwable.getMessage().contains("Access denied: You can only create loan applications for yourself"))
+                .verify();
+
+        // Verify interactions - client validation should be called
+        verify(clientValidationRepository).getUserEmailByDocumentId("12345678");
+    }
+
+    @Test
+    void createApplication_ShouldThrowServiceUnavailableException_WhenAuthServiceDown() {
+        // Arrange
+        Application inputApplication = Application.builder()
+                .documentId("12345678")
+                .email("test@example.com")
+                .amount(new BigDecimal("500000"))
+                .term(12)
+                .build();
+
+        // Mock client validation to throw ServiceUnavailableException
+        when(clientValidationRepository.getUserEmailByDocumentId("12345678"))
+                .thenReturn(Mono.error(new RuntimeException("Authentication service is temporarily unavailable. Please try again later.")));
+        
+        // Mock other dependencies to avoid NPE (won't be called due to early error)
+        when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
+
+        // Act
+        Mono<Application> result = applicationUseCase.createApplication(
+                inputApplication,
+                LoanTypeEnum.PERSONAL
+        );
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof RuntimeException &&
+                        throwable.getMessage().contains("Authentication service is temporarily unavailable"))
+                .verify();
+
+        // Verify interactions - client validation should be called
+        verify(clientValidationRepository).getUserEmailByDocumentId("12345678");
     }
 }

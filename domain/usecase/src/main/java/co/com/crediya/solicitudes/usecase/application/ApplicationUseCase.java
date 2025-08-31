@@ -51,11 +51,22 @@ public class ApplicationUseCase {
     private Mono<Void> validateClient(Application application) {
         log.info("Validating client exists: " + application.getDocumentId());
 
-        return clientValidationRepository.validateClientExists(application.getDocumentId())
-                .filter(exists -> exists)
-                .switchIfEmpty(Mono.error(new ClientNotFoundException(
-                        "Client not found with documentId: " + application.getDocumentId())))
-                .then()
+        return clientValidationRepository.getUserEmailByDocumentId(application.getDocumentId())
+                .switchIfEmpty(Mono.error(new ClientNotFoundException("Client not found with documentId: " + application.getDocumentId())))
+                .flatMap(userEmail -> {
+                    // Validate ownership - user can only create applications for themselves
+                    if (!userEmail.equals(application.getEmail())) {
+                        log.severe("OWNERSHIP DENIED: User with documentId " + application.getDocumentId() + 
+                                " attempted to use incorrect email");
+                        return Mono.error(new ClientNotFoundException(
+                            "Access denied: You can only create loan applications for yourself. " +
+                            "The email provided does not match the registered user."));
+                    }
+                    
+                    log.info("Ownership validation passed for documentId: " + application.getDocumentId() +
+                            " with email: " + userEmail);
+                    return Mono.<Void>empty();
+                })
                 .doOnSuccess(v -> log.info("Client validation successful for: " + application.getDocumentId()))
                 .doOnError(error -> log.severe("Client validation failed: " + error.getMessage()));
     }
