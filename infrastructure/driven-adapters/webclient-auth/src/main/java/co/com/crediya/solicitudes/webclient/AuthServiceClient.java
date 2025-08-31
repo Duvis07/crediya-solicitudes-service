@@ -1,10 +1,9 @@
 package co.com.crediya.solicitudes.webclient;
 
 import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
-import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
-import co.com.crediya.solicitudes.model.exceptions.ServiceUnavailableException;
 import co.com.crediya.solicitudes.webclient.config.AuthServiceEndpoints;
 import co.com.crediya.solicitudes.webclient.dto.UserResponse;
+import co.com.crediya.solicitudes.webclient.util.AuthServiceUtils;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import io.github.resilience4j.reactor.retry.RetryOperator;
@@ -28,9 +27,17 @@ public class AuthServiceClient implements ClientValidationRepository {
     private final TimeLimiter timeLimiter;
 
     @Override
-    public Mono<Boolean> validateClientExists(String documentId) {
-        log.info("ATTEMPT: Validating client exists with documentId: {}", documentId);
+    public Mono<String> getUserEmailByDocumentId(String documentId) {
+        log.info("Getting user email for documentId: {}", documentId);
 
+        return getUserFromAuthService(documentId)
+                .flatMap(user -> AuthServiceUtils.validateApplicantRole(user, documentId))
+                .map(UserResponse::getEmail)
+                .doOnSuccess(email -> log.info("User email retrieved for documentId: {} - email: {}",
+                        documentId, email));
+    }
+
+    private Mono<UserResponse> getUserFromAuthService(String documentId) {
         String endpoint = AuthServiceEndpoints.getUserByDocumentUrl(authServiceBaseUrl);
 
         return webClient
@@ -38,24 +45,13 @@ public class AuthServiceClient implements ClientValidationRepository {
                 .uri(endpoint, documentId)
                 .retrieve()
                 .bodyToMono(UserResponse.class)
-                .map(user -> {
-                    log.info("SUCCESS: Client validation successful for documentId: {}", documentId);
-                    return true;
-                })
-                .onErrorResume(WebClientResponseException.NotFound.class, ex -> {
-                    log.info("CLIENT NOT FOUND: documentId {} does not exist", documentId);
-                    return Mono.error(new ClientNotFoundException("Client not found with documentId: " + documentId));
-                })
-                .doOnError(error -> log.error("RETRY: Error validating client with documentId {}: {}", documentId, error.getMessage()))
+                .onErrorResume(WebClientResponseException.NotFound.class,
+                        ex -> AuthServiceUtils.handleNotFoundError(documentId))
+                .doOnError(error -> log.error("RETRY: Error calling auth service for documentId {}: {}",
+                        documentId, error.getMessage()))
                 .transformDeferred(RetryOperator.of(retry))
                 .transformDeferred(TimeLimiterOperator.of(timeLimiter))
                 .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
-                .onErrorMap(ex -> {
-                    if (ex instanceof ClientNotFoundException) {
-                        return ex;
-                    }
-                    log.warn("FALLBACK: All retries failed for documentId: {}. Reason: {}", documentId, ex.getMessage());
-                    return new ServiceUnavailableException("Authentication service is temporarily unavailable. Please try again later.", ex);
-                });
+                .onErrorMap(ex -> AuthServiceUtils.mapToBusinessException(ex, documentId));
     }
 }
