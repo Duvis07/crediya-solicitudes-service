@@ -52,6 +52,7 @@ public class ApplicationUseCase {
         log.info("Validating client exists: " + application.getDocumentId());
 
         return clientValidationRepository.getUserEmailByDocumentId(application.getDocumentId())
+                .switchIfEmpty(Mono.error(new ClientNotFoundException("Client not found with documentId: " + application.getDocumentId())))
                 .flatMap(userEmail -> {
                     // Validate ownership - user can only create applications for themselves
                     if (!userEmail.equals(application.getEmail())) {
