@@ -54,6 +54,7 @@ INSERT INTO states (name, description) VALUES
     ('En evaluacion', 'Solicitud en proceso de analisis crediticio'),
     ('Aprobada', 'Solicitud aprobada, pendiente de desembolso'),
     ('Rechazada', 'Solicitud rechazada por no cumplir criterios'),
+    ('Revision manual', 'Solicitud requiere revision manual por un asesor'),
     ('Desembolsada', 'Prestamo desembolsado exitosamente'),
     ('Cancelada', 'Solicitud cancelada por el solicitante')
 ON CONFLICT (name) DO NOTHING;
