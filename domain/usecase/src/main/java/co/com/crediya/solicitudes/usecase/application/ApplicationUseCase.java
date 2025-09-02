@@ -134,4 +134,15 @@ public class ApplicationUseCase {
                 .filter(list -> !list.isEmpty())
                 .switchIfEmpty(Mono.error(new IllegalStateException("No valid states found for manual review")));
     }
+
+    public Flux<Application> getAllApplications() {
+        log.info("Getting all applications");
+        return getStateIdsForManualReview()
+                .flatMapMany(stateIds -> {
+                    log.info("Found state IDs for manual review: " + stateIds);
+                    return applicationRepository.findByStateInWithPagination(stateIds, PageRequest.of(0, Integer.MAX_VALUE, "createdAt", "desc"));
+                })
+                .doOnComplete(() -> log.info("Successfully retrieved all applications"))
+                .doOnError(error -> log.severe("Error retrieving all applications: " + error.getMessage()));
+    }
 }

@@ -4,8 +4,11 @@ import co.com.crediya.solicitudes.api.dto.ApplicationResponse;
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
 import co.com.crediya.solicitudes.api.exceptions.ValidationException;
 import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
+import co.com.crediya.solicitudes.api.mapper.PageResponseMapper;
 import co.com.crediya.solicitudes.api.validator.RequestValidator;
 import co.com.crediya.solicitudes.model.application.Application;
+import co.com.crediya.solicitudes.model.common.PageRequest;
+import co.com.crediya.solicitudes.model.common.PageResponse;
 import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +24,13 @@ import org.springframework.mock.web.reactive.function.server.MockServerRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,13 +47,16 @@ class HandlerTest {
     private ApplicationDtoMapper applicationDtoMapper;
 
     @Mock
+    private PageResponseMapper pageResponseMapper;
+
+    @Mock
     private RequestValidator requestValidator;
 
     private Handler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new Handler(applicationUseCase, applicationDtoMapper, requestValidator);
+        handler = new Handler(applicationUseCase, applicationDtoMapper, pageResponseMapper, requestValidator);
     }
 
     static Stream<Arguments> validApplicationData() {
@@ -89,7 +96,7 @@ class HandlerTest {
 
     @ParameterizedTest
     @MethodSource("validApplicationData")
-    void createApplication_ShouldReturnSuccessResponse_WhenValidRequest(CreateApplicationRequest request, Application expectedApplication) {
+    void createApplicationShouldReturnSuccessResponseWhenValidRequest(CreateApplicationRequest request, Application expectedApplication) {
         // Arrange
         ServerRequest serverRequest = MockServerRequest.builder()
                 .body(Mono.just(request));
@@ -125,7 +132,7 @@ class HandlerTest {
     }
 
     @Test
-    void createApplication_ShouldReturnError_WhenValidationFails() {
+    void createApplicationShouldReturnErrorWhenValidationFails() {
         // Arrange
         CreateApplicationRequest request = CreateApplicationRequest.builder()
                 .documentId("123") // Invalid
@@ -158,7 +165,7 @@ class HandlerTest {
     }
 
     @Test
-    void createApplication_ShouldReturnError_WhenUseCaseFails() {
+    void createApplicationShouldReturnErrorWhenUseCaseFails() {
         // Arrange
         CreateApplicationRequest request = CreateApplicationRequest.builder()
                 .documentId("12345678")
@@ -201,7 +208,7 @@ class HandlerTest {
     }
 
     @Test
-    void getAllApplications_ShouldReturnApplicationsList_WhenApplicationsExist() {
+    void getAllApplicationsShouldReturnApplicationsListWhenApplicationsExist() {
         // Arrange
         Application app1 = Application.builder()
                 .applicationId(1L)
@@ -242,13 +249,21 @@ class HandlerTest {
                 .build();
 
         ServerRequest serverRequest = MockServerRequest.builder().build();
+        
+        PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
+        PageResponse<Application> pageResponse = PageResponse.of(List.of(app1, app2), pageRequest, 2L);
+        Map<String, Object> expectedResponse = Map.of(
+            "content", List.of(response1, response2),
+            "totalElements", 2L,
+            "totalPages", 1,
+            "currentPage", 0,
+            "pageSize", 10
+        );
 
-        when(applicationUseCase.getAllApplications())
-                .thenReturn(Flux.just(app1, app2));
-        when(applicationDtoMapper.toResponse(app1))
-                .thenReturn(response1);
-        when(applicationDtoMapper.toResponse(app2))
-                .thenReturn(response2);
+        when(applicationUseCase.getApplicationsForManualReviewPaginated(any(PageRequest.class)))
+                .thenReturn(Mono.just(pageResponse));
+        when(pageResponseMapper.buildPageResponseWithDetails(pageResponse))
+                .thenReturn(Mono.just(expectedResponse));
 
         // Act
         Mono<ServerResponse> result = handler.getAllApplications(serverRequest);
@@ -261,18 +276,29 @@ class HandlerTest {
                 })
                 .verifyComplete();
 
-        verify(applicationUseCase).getAllApplications();
-        verify(applicationDtoMapper).toResponse(app1);
-        verify(applicationDtoMapper).toResponse(app2);
+        verify(applicationUseCase).getApplicationsForManualReviewPaginated(any(PageRequest.class));
+        verify(pageResponseMapper).buildPageResponseWithDetails(pageResponse);
     }
 
     @Test
-    void getAllApplications_ShouldReturnEmptyList_WhenNoApplicationsExist() {
+    void getAllApplicationsShouldReturnEmptyListWhenNoApplicationsExist() {
         // Arrange
         ServerRequest serverRequest = MockServerRequest.builder().build();
+        
+        PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
+        PageResponse<Application> emptyPageResponse = PageResponse.of(List.of(), pageRequest, 0L);
+        Map<String, Object> emptyResponse = Map.of(
+            "content", List.of(),
+            "totalElements", 0L,
+            "totalPages", 0,
+            "currentPage", 0,
+            "pageSize", 10
+        );
 
-        when(applicationUseCase.getAllApplications())
-                .thenReturn(Flux.empty());
+        when(applicationUseCase.getApplicationsForManualReviewPaginated(any(PageRequest.class)))
+                .thenReturn(Mono.just(emptyPageResponse));
+        when(pageResponseMapper.buildPageResponseWithDetails(emptyPageResponse))
+                .thenReturn(Mono.just(emptyResponse));
 
         // Act
         Mono<ServerResponse> result = handler.getAllApplications(serverRequest);
@@ -285,36 +311,32 @@ class HandlerTest {
                 })
                 .verifyComplete();
 
-        verify(applicationUseCase).getAllApplications();
-        verifyNoInteractions(applicationDtoMapper);
+        verify(applicationUseCase).getApplicationsForManualReviewPaginated(any(PageRequest.class));
+        verify(pageResponseMapper).buildPageResponseWithDetails(emptyPageResponse);
     }
 
     @Test
-    void getAllApplications_ShouldReturnInternalServerError_WhenUseCaseFails() {
+    void getAllApplicationsShouldReturnInternalServerErrorWhenUseCaseFails() {
         // Arrange
         ServerRequest serverRequest = MockServerRequest.builder().build();
         RuntimeException useCaseException = new RuntimeException("Database connection failed");
 
-        when(applicationUseCase.getAllApplications())
-                .thenReturn(Flux.error(useCaseException));
+        when(applicationUseCase.getApplicationsForManualReviewPaginated(any(PageRequest.class)))
+                .thenReturn(Mono.error(useCaseException));
 
         // Act
         Mono<ServerResponse> result = handler.getAllApplications(serverRequest);
 
         // Assert
         StepVerifier.create(result)
-                .assertNext(response -> {
-                    assertNotNull(response);
-                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode());
-                })
-                .verifyComplete();
+                .expectError(RuntimeException.class)
+                .verify();
 
-        verify(applicationUseCase).getAllApplications();
-        verifyNoInteractions(applicationDtoMapper);
+        verify(applicationUseCase).getApplicationsForManualReviewPaginated(any(PageRequest.class));
     }
 
     @Test
-    void createApplication_ShouldHandleMapperError_WhenMappingFails() {
+    void createApplicationShouldHandleMapperErrorWhenMappingFails() {
         // Arrange
         CreateApplicationRequest request = CreateApplicationRequest.builder()
                 .documentId("12345678")
