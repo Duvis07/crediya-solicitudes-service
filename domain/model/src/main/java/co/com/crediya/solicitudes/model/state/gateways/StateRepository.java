@@ -5,4 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface StateRepository {
     Mono<State> findByName(String name);
+    Mono<State> findById(Long stateId);
 }
