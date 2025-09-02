@@ -4,6 +4,7 @@ import co.com.crediya.solicitudes.api.utils.LoanCalculationUtils;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.model.loantype.LoanType;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
+import co.com.crediya.solicitudes.model.state.ApplicationStatus;
 import co.com.crediya.solicitudes.model.state.State;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,6 @@ public class ApplicationEnrichmentService {
     private final LoanTypeRepository loanTypeRepository;
     private final ApplicationRepository applicationRepository;
 
-    private static final Long DISBURSED_STATE_ID = 5L; // State 5 = Desembolsada
 
     public Mono<String> getApplicationState(Long stateId) {
         return stateRepository.findById(stateId)
@@ -40,9 +40,10 @@ public class ApplicationEnrichmentService {
     }
 
     public Mono<BigDecimal> calculateTotalMonthlyDebt(String documentId) {
-        return applicationRepository.findByDocumentIdAndStateId(documentId, DISBURSED_STATE_ID)
-                .doOnNext(app -> log.info("Found disbursed loan for {}: amount={}, term={}", 
-                        documentId, app.getAmount(), app.getTerm()))
+        return stateRepository.findByName(ApplicationStatus.DISBURSED.getDescription())
+                .map(State::getStateId)
+                .flatMapMany(disbursedStateId -> 
+                    applicationRepository.findByDocumentIdAndStateId(documentId, disbursedStateId))
                 .map(LoanCalculationUtils::calculateMonthlyPayment)
                 .doOnNext(payment -> log.info("Monthly payment: {}", payment))
                 .reduce(BigDecimal.ZERO, LoanCalculationUtils::addMonthlyPayments)

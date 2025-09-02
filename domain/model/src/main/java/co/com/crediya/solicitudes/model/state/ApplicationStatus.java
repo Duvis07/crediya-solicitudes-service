@@ -14,6 +14,7 @@ public enum ApplicationStatus {
     REJECTED("Rechazada"),
     MANUAL_REVIEW("Revision manual"),
     IN_PROCESS("En proceso"),
+    DISBURSED("Desembolsada"),
     COMPLETED("Completada"),
     CANCELLED("Cancelada");
 
