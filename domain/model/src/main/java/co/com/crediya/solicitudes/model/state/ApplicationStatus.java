@@ -12,6 +12,7 @@ public enum ApplicationStatus {
     PENDING_REVIEW("Pendiente de revision"),
     APPROVED("Aprobada"),
     REJECTED("Rechazada"),
+    MANUAL_REVIEW("Revision manual"),
     IN_PROCESS("En proceso"),
     COMPLETED("Completada"),
     CANCELLED("Cancelada");

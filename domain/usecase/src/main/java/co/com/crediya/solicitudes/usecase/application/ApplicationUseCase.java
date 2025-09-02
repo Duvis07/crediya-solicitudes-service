@@ -11,11 +11,15 @@ import co.com.crediya.solicitudes.model.state.ApplicationStatus;
 import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
 import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
+import co.com.crediya.solicitudes.model.common.PageRequest;
+import co.com.crediya.solicitudes.model.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 
@@ -86,7 +90,48 @@ public class ApplicationUseCase {
                 .switchIfEmpty(Mono.error(new IllegalStateException("Status '" + ApplicationStatus.PENDING_REVIEW.getDescription() + "' not found")));
     }
 
-    public Flux<Application> getAllApplications() {
-        return applicationRepository.findAll();
+    public Mono<PageResponse<Application>> getApplicationsForManualReviewPaginated(PageRequest pageRequest) {
+        log.info("Getting paginated applications for manual review - page: " + pageRequest.page() + ", size: " + pageRequest.size());
+        
+        return getStateIdsForManualReview()
+                .flatMap(stateIds -> {
+                    log.info("Found state IDs for manual review: " + stateIds);
+                    
+                    Mono<List<Application>> contentMono = applicationRepository
+                            .findByStateInWithPagination(stateIds, pageRequest)
+                            .collectList();
+                    
+                    Mono<Long> totalMono = applicationRepository.countByStateIn(stateIds);
+                    
+                    return Mono.zip(contentMono, totalMono)
+                            .map(tuple -> {
+                                List<Application> content = tuple.getT1();
+                                Long total = tuple.getT2();
+                                log.info("Retrieved " + content.size() + " applications out of " + total + " total for manual review");
+                                return PageResponse.of(content, pageRequest, total);
+                            });
+                })
+                .doOnSuccess(page -> log.info("Successfully retrieved paginated applications for manual review"))
+                .doOnError(error -> log.severe("Error retrieving paginated applications for manual review: " + error.getMessage()));
+    }
+
+    private Mono<List<Long>> getStateIdsForManualReview() {
+        List<String> targetStates = Arrays.asList(
+            ApplicationStatus.PENDING_REVIEW.getDescription(),
+            ApplicationStatus.REJECTED.getDescription(),
+            ApplicationStatus.MANUAL_REVIEW.getDescription()
+        );
+        
+        return Flux.fromIterable(targetStates)
+                .flatMap(stateName -> stateRepository.findByName(stateName)
+                        .map(State::getStateId)
+                        .doOnNext(id -> log.info("Found state ID " + id + " for state: " + stateName))
+                        .onErrorResume(error -> {
+                            log.severe("State not found: " + stateName + " - " + error.getMessage());
+                            return Mono.empty();
+                        }))
+                .collectList()
+                .filter(list -> !list.isEmpty())
+                .switchIfEmpty(Mono.error(new IllegalStateException("No valid states found for manual review")));
     }
 }
