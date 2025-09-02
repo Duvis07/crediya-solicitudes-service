@@ -30,6 +30,7 @@ solicitudes-service/
 │   └── usecase/                       # 📋 Casos de uso
 └── infrastructure/
     ├── driven-adapters/
+    │   ├── jwt-security/              # 🔐 Autenticación y autorización JWT
     │   ├── r2dbc-postgresql/          # 🗄️ Persistencia reactiva
     │   └── webclient-auth/            # 🔗 Cliente HTTP para autenticación
     └── entry-points/
@@ -40,6 +41,7 @@ solicitudes-service/
 
 - **Framework**: Spring Boot 3.5.4 con WebFlux (Programación Reactiva)
 - **Base de Datos**: PostgreSQL con R2DBC (Acceso reactivo)
+- **Seguridad**: JWT Authentication & Authorization con Spring Security
 - **Resilencia**: Resilience4j (Circuit Breaker, Retry, Timeout)
 - **Mapeo**: MapStruct para conversión de DTOs
 - **Validación**: Bean Validation con validadores personalizados
@@ -170,7 +172,9 @@ Los reportes se generan en:
 - **`domain/usecase/`**: Lógica de negocio (ApplicationUseCase)
 
 ### Infrastructure Layer
+- **`driven-adapters/jwt-security/`**: Filtros JWT, autenticación y autorización
 - **`driven-adapters/r2dbc-postgresql/`**: Repositorios reactivos y mappers
+- **`driven-adapters/webclient-auth/`**: Cliente HTTP para servicio de autenticación
 - **`entry-points/reactive-web/`**: Controllers, DTOs y configuración web
 
 ### Application Layer
@@ -186,6 +190,12 @@ El microservicio utiliza variables de entorno para configuración flexible:
 - **CORS**: Orígenes permitidos configurables para desarrollo/producción
 
 ## 🔒 Seguridad
+
+### Autenticación JWT
+- **Filtro de Autenticación**: `JwtAuthenticationFilter` valida tokens JWT
+- **Filtro de Autorización**: `RoleAuthorizationFilter` controla acceso por roles
+- **Roles Soportados**: ADMIN, ASESOR, APPLICANT
+- **Endpoint Protegido**: GET `/api/v1/solicitud` (solo rol ASESOR)
 
 ### Headers de Seguridad
 - Content-Security-Policy
@@ -254,18 +264,3 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 ### Git Flow
 - Feature branches para nuevas funcionalidades
-
-## 📋 Requerimientos de Negocio
-
-### HU2 - Registrar Solicitud de Préstamo
-**Como cliente, quiero enviar mi solicitud de préstamo con la información necesaria (monto y plazo deseado) para que CrediYa pueda evaluarla**
-
-#### Criterios de Aceptación:
-- ✅ Endpoint POST /api/v1/solicitud
-- ✅ Validación de información del cliente y préstamo
-- ✅ Transacciones reactivas con WebFlux
-- ✅ Logs de trazabilidad
-- ✅ Manejo de excepciones
-- ✅ Estado inicial "Pendiente de revisión"
-- ✅ Validación de tipos de préstamo existentes
-- ✅ Tests unitarios implementados

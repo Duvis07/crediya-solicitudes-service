@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.api;
 
-import co.com.crediya.solicitudes.api.dto.ApplicationResponse;
+import co.com.crediya.solicitudes.api.dto.ApplicationDetailResponse;
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -62,18 +62,35 @@ public class RouterRest {
                     method = RequestMethod.GET,
                     operation = @Operation(
                             operationId = "getAllApplications",
-                            summary = "Obtener todas las solicitudes",
-                            description = "Recupera todas las solicitudes de préstamo del sistema",
+                            summary = "Obtener solicitudes para revisión manual",
+                            description = "Recupera solicitudes paginadas que requieren revisión manual (Pendiente de revisión, Rechazadas, Revisión manual)",
                             tags = {"Solicitudes"},
+                            parameters = {
+                                    @io.swagger.v3.oas.annotations.Parameter(
+                                            name = "page",
+                                            description = "Número de página (comenzando desde 0)",
+                                            required = false,
+                                            schema = @Schema(type = "integer", defaultValue = "0", minimum = "0")
+                                    ),
+                                    @io.swagger.v3.oas.annotations.Parameter(
+                                            name = "size",
+                                            description = "Tamaño de página (máximo 100)",
+                                            required = false,
+                                            schema = @Schema(type = "integer", defaultValue = "10", minimum = "1", maximum = "100")
+                                    )
+                            },
                             responses = {
                                     @ApiResponse(
                                             responseCode = "200",
                                             description = "Solicitudes recuperadas exitosamente",
                                             content = @Content(
                                                     mediaType = "application/json",
-                                                    schema = @Schema(type = "array", implementation = ApplicationResponse.class)
+                                                    schema = @Schema(implementation = ApplicationDetailResponse.class)
                                             )
                                     ),
+                                    @ApiResponse(responseCode = "400", description = "Parámetros de paginación inválidos"),
+                                    @ApiResponse(responseCode = "401", description = "No autorizado - Se requiere autenticación"),
+                                    @ApiResponse(responseCode = "403", description = "Prohibido - Solo asesores pueden acceder"),
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }
                     )

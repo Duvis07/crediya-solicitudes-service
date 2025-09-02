@@ -5,4 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface LoanTypeRepository {
     Mono<LoanType> findByName(String name);
+    Mono<LoanType> findById(Long loanTypeId);
 }

@@ -87,7 +87,7 @@ class StateRepositoryAdapterTest {
 
     @ParameterizedTest
     @MethodSource("stateTestData")
-    void findByName_ShouldReturnState_WhenStateExists(String stateName, StateEntity entity, State expectedState) {
+    void findByNameShouldReturnStateWhenStateExists(String stateName, StateEntity entity, State expectedState) {
         // Arrange
         when(stateEntityRepository.findByName(stateName))
                 .thenReturn(Mono.just(entity));
@@ -111,7 +111,7 @@ class StateRepositoryAdapterTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"Nonexistent State"})
-    void findByName_ShouldReturnEmpty_WhenStateNotFoundOrInvalidName(String stateName) {
+    void findByNameShouldReturnEmptyWhenStateNotFoundOrInvalidName(String stateName) {
         // Arrange
         when(stateEntityRepository.findByName(stateName))
                 .thenReturn(Mono.empty());
@@ -125,7 +125,7 @@ class StateRepositoryAdapterTest {
     }
 
     @Test
-    void findByName_ShouldHandleError_WhenRepositoryFails() {
+    void findByNameShouldHandleErrorWhenRepositoryFails() {
         // Arrange
         String stateName = "Pendiente de revision";
 
@@ -142,7 +142,7 @@ class StateRepositoryAdapterTest {
     }
 
     @Test
-    void findByName_ShouldReturnDifferentStates_WhenDifferentNamesProvided() {
+    void findByNameShouldReturnDifferentStatesWhenDifferentNamesProvided() {
         // Arrange
         String rejectedStateName = "Rechazada";
 
@@ -172,6 +172,175 @@ class StateRepositoryAdapterTest {
                     assertEquals(4L, foundState.getStateId());
                     assertEquals("Rechazada", foundState.getName());
                     assertEquals("Solicitud rechazada por no cumplir criterios", foundState.getDescription());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldReturnStateWhenStateExists() {
+        // Arrange
+        Long stateId = 1L;
+
+        StateEntity stateEntity = StateEntity.builder()
+                .stateId(1L)
+                .name("Pendiente de revision")
+                .description("Solicitud recibida, pendiente de evaluacion inicial")
+                .build();
+
+        State state = State.builder()
+                .stateId(1L)
+                .name("Pendiente de revision")
+                .description("Solicitud recibida, pendiente de evaluacion inicial")
+                .build();
+
+        when(stateEntityRepository.findById(stateId))
+                .thenReturn(Mono.just(stateEntity));
+        when(stateMapper.toDomain(stateEntity))
+                .thenReturn(state);
+
+        // Act
+        Mono<State> result = stateRepositoryAdapter.findById(stateId);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(foundState -> {
+                    assertNotNull(foundState);
+                    assertEquals(1L, foundState.getStateId());
+                    assertEquals("Pendiente de revision", foundState.getName());
+                    assertEquals("Solicitud recibida, pendiente de evaluacion inicial", foundState.getDescription());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldReturnEmptyWhenStateNotFound() {
+        // Arrange
+        Long stateId = 999L;
+
+        when(stateEntityRepository.findById(stateId))
+                .thenReturn(Mono.empty());
+
+        // Act
+        Mono<State> result = stateRepositoryAdapter.findById(stateId);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldHandleErrorWhenRepositoryFails() {
+        // Arrange
+        Long stateId = 1L;
+
+        when(stateEntityRepository.findById(stateId))
+                .thenReturn(Mono.error(new RuntimeException("Database connection error")));
+
+        // Act
+        Mono<State> result = stateRepositoryAdapter.findById(stateId);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {2L, 3L, 4L})
+    void findByIdShouldReturnCorrectStateForDifferentIds(Long stateId) {
+        // Arrange
+        StateEntity stateEntity = StateEntity.builder()
+                .stateId(stateId)
+                .name("Test State")
+                .description("Test Description")
+                .build();
+
+        State state = State.builder()
+                .stateId(stateId)
+                .name("Test State")
+                .description("Test Description")
+                .build();
+
+        when(stateEntityRepository.findById(stateId))
+                .thenReturn(Mono.just(stateEntity));
+        when(stateMapper.toDomain(stateEntity))
+                .thenReturn(state);
+
+        // Act
+        Mono<State> result = stateRepositoryAdapter.findById(stateId);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(foundState -> {
+                    assertEquals(stateId, foundState.getStateId());
+                    assertEquals("Test State", foundState.getName());
+                    assertEquals("Test Description", foundState.getDescription());
+                })
+                .verifyComplete();
+    }
+
+    static Stream<Arguments> stateIdTestData() {
+        return Stream.of(
+                Arguments.of(
+                        1L,
+                        StateEntity.builder()
+                                .stateId(1L)
+                                .name("Pendiente de revision")
+                                .description("Solicitud recibida, pendiente de evaluacion inicial")
+                                .build(),
+                        State.builder()
+                                .stateId(1L)
+                                .name("Pendiente de revision")
+                                .description("Solicitud recibida, pendiente de evaluacion inicial")
+                                .build()
+                ),
+                Arguments.of(
+                        3L,
+                        StateEntity.builder()
+                                .stateId(3L)
+                                .name("Aprobada")
+                                .description("Solicitud aprobada, pendiente de desembolso")
+                                .build(),
+                        State.builder()
+                                .stateId(3L)
+                                .name("Aprobada")
+                                .description("Solicitud aprobada, pendiente de desembolso")
+                                .build()
+                ),
+                Arguments.of(
+                        4L,
+                        StateEntity.builder()
+                                .stateId(4L)
+                                .name("Rechazada")
+                                .description("Solicitud rechazada por no cumplir criterios")
+                                .build(),
+                        State.builder()
+                                .stateId(4L)
+                                .name("Rechazada")
+                                .description("Solicitud rechazada por no cumplir criterios")
+                                .build()
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("stateIdTestData")
+    void findByIdShouldReturnCorrectStateWhenValidId(Long stateId, StateEntity entity, State expectedState) {
+        // Arrange
+        when(stateEntityRepository.findById(stateId))
+                .thenReturn(Mono.just(entity));
+        when(stateMapper.toDomain(entity))
+                .thenReturn(expectedState);
+
+        // Act
+        Mono<State> result = stateRepositoryAdapter.findById(stateId);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(foundState -> {
+                    assertEquals(expectedState.getStateId(), foundState.getStateId());
+                    assertEquals(expectedState.getName(), foundState.getName());
+                    assertEquals(expectedState.getDescription(), foundState.getDescription());
                 })
                 .verifyComplete();
     }

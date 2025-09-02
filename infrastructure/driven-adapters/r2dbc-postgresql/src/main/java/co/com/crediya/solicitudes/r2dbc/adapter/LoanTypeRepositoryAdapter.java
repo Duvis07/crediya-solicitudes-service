@@ -20,4 +20,10 @@ public class LoanTypeRepositoryAdapter implements LoanTypeRepository {
         return loanTypeEntityRepository.findByName(name)
                 .map(loanTypeMapper::toDomain);
     }
+
+    @Override
+    public Mono<LoanType> findById(Long loanTypeId) {
+        return loanTypeEntityRepository.findById(loanTypeId)
+                .map(loanTypeMapper::toDomain);
+    }
 }

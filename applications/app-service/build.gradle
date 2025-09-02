@@ -5,6 +5,7 @@ dependencies {
     implementation project(':reactive-web')
     implementation project(':r2dbc-postgresql')
     implementation project(':webclient-auth')
+    implementation project(':jwt-security')
     implementation project(':model')
     implementation project(':usecase')
 
@@ -22,6 +23,7 @@ dependencies {
 
     // --- Dependencias de desarrollo ---
     runtimeOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
 
     // --- Dependencias de pruebas ---
     testImplementation 'com.tngtech.archunit:archunit:1.4.1'

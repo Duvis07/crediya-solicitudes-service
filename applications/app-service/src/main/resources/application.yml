@@ -11,11 +11,12 @@ spring:
   aop:
     auto: true
     proxy-target-class: true
-  
+
+# Database configuration
   r2dbc:
-    url: r2dbc:postgresql://${R2DBC_HOST:localhost}:${R2DBC_PORT:5433}/${R2DBC_DATABASE:crediya_solicitudes_db}
-    username: ${R2DBC_USERNAME:postgres}
-    password: ${R2DBC_PASSWORD:nueva_contraseña}
+    url: r2dbc:postgresql://${R2DBC_HOST}:${R2DBC_PORT}/${R2DBC_DATABASE}
+    username: ${R2DBC_USERNAME}
+    password: ${R2DBC_PASSWORD}
     pool:
       initial-size: 5
       max-size: 20
@@ -32,8 +33,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
-          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+          issuer-uri: ${JWT_ISSUER_URI}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET}
 
 #logging:
 #  level:
@@ -61,7 +66,11 @@ cors:
 
 # Authentication service configuration
 auth-service:
-  base-url: ${AUTH_SERVICE_URL:http://localhost:8080}
+  base-url: ${AUTH_SERVICE_URL}
+  endpoints:
+    api-base: ${AUTH_SERVICE_API_BASE}
+    users-base: ${AUTH_SERVICE_USERS_BASE}
+    user-by-document: ${AUTH_SERVICE_USER_BY_DOCUMENT}
 
 # Resilience4j configuration
 resilience4j:

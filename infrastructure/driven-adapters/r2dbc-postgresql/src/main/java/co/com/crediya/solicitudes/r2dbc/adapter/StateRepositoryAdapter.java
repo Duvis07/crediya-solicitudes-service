@@ -21,4 +21,10 @@ public class StateRepositoryAdapter implements StateRepository {
                 .map(stateMapper::toDomain);
     }
 
+    @Override
+    public Mono<State> findById(Long stateId) {
+        return stateEntityRepository.findById(stateId)
+                .map(stateMapper::toDomain);
+    }
+
 }

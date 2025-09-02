@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -177,40 +176,6 @@ class ApplicationUseCaseTest {
     }
 
     @Test
-    void getAllApplications_ShouldReturnAllApplications() {
-        // Arrange
-        Application app1 = Application.builder()
-                .applicationId(1L)
-                .documentId("12345678")
-                .build();
-
-        Application app2 = Application.builder()
-                .applicationId(2L)
-                .documentId("87654321")
-                .build();
-
-        when(applicationRepository.findAll()).thenReturn(Flux.just(app1, app2));
-
-        // Act
-        Flux<Application> result = applicationUseCase.getAllApplications();
-
-        // Assert
-        StepVerifier.create(result)
-                .assertNext(application -> {
-                    assertEquals(1L, application.getApplicationId());
-                    assertEquals("12345678", application.getDocumentId());
-                })
-                .assertNext(application -> {
-                    assertEquals(2L, application.getApplicationId());
-                    assertEquals("87654321", application.getDocumentId());
-                })
-                .verifyComplete();
-
-        // Verify interactions
-        verify(applicationRepository).findAll();
-    }
-
-    @Test
     void createApplication_ShouldSetTimestamps_WhenCreatingApplication() {
         // Arrange
         Application inputApplication = Application.builder()
@@ -272,7 +237,7 @@ class ApplicationUseCaseTest {
         // Mock client validation to throw ClientNotFoundException
         when(clientValidationRepository.getUserEmailByDocumentId("99999999"))
                 .thenReturn(Mono.error(new ClientNotFoundException("Client not found with documentId: 99999999")));
-        
+
         // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
@@ -305,7 +270,7 @@ class ApplicationUseCaseTest {
 
         // Mock client validation to return empty
         when(clientValidationRepository.getUserEmailByDocumentId("88888888")).thenReturn(Mono.empty());
-        
+
         // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
@@ -339,7 +304,7 @@ class ApplicationUseCaseTest {
         // Mock client validation to return different email
         when(clientValidationRepository.getUserEmailByDocumentId("12345678"))
                 .thenReturn(Mono.just("correct@example.com"));
-        
+
         // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
@@ -373,7 +338,7 @@ class ApplicationUseCaseTest {
         // Mock client validation to throw ServiceUnavailableException
         when(clientValidationRepository.getUserEmailByDocumentId("12345678"))
                 .thenReturn(Mono.error(new RuntimeException("Authentication service is temporarily unavailable. Please try again later.")));
-        
+
         // Mock other dependencies to avoid NPE (won't be called due to early error)
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.empty());
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.empty());
@@ -392,5 +357,189 @@ class ApplicationUseCaseTest {
 
         // Verify interactions - client validation should be called
         verify(clientValidationRepository).getUserEmailByDocumentId("12345678");
+    }
+
+    @Test
+    void getApplicationsForManualReviewPaginated_ShouldReturnPagedApplications_WhenValidRequest() {
+        // Arrange
+        co.com.crediya.solicitudes.model.common.PageRequest pageRequest =
+                co.com.crediya.solicitudes.model.common.PageRequest.of(0, 10);
+
+        State pendingState = State.builder().stateId(1L).name("Pendiente de revision").build();
+        State rejectedState = State.builder().stateId(2L).name("Rechazada").build();
+        State manualState = State.builder().stateId(3L).name("Revision manual").build();
+
+        Application app1 = Application.builder()
+                .applicationId(1L)
+                .documentId("12345678")
+                .email("test1@example.com")
+                .amount(new BigDecimal("500000"))
+                .term(12)
+                .stateId(1L)
+                .loanTypeId(1L)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Application app2 = Application.builder()
+                .applicationId(2L)
+                .documentId("87654321")
+                .email("test2@example.com")
+                .amount(new BigDecimal("750000"))
+                .term(24)
+                .stateId(2L)
+                .loanTypeId(1L)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        java.util.List<Application> applications = java.util.List.of(app1, app2);
+
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(reactor.core.publisher.Mono.just(pendingState));
+        when(stateRepository.findByName("Rechazada")).thenReturn(reactor.core.publisher.Mono.just(rejectedState));
+        when(stateRepository.findByName("Revision manual")).thenReturn(reactor.core.publisher.Mono.just(manualState));
+        when(applicationRepository.findByStateInWithPagination(
+                java.util.List.of(1L, 2L, 3L), pageRequest))
+                .thenReturn(reactor.core.publisher.Flux.fromIterable(applications));
+        when(applicationRepository.countByStateIn(java.util.List.of(1L, 2L, 3L)))
+                .thenReturn(reactor.core.publisher.Mono.just(2L));
+
+        // Act
+        reactor.core.publisher.Mono<co.com.crediya.solicitudes.model.common.PageResponse<Application>> result =
+                applicationUseCase.getApplicationsForManualReviewPaginated(pageRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertNotNull(response);
+                    assertEquals(2, response.content().size());
+                    assertEquals(0, response.page());
+                    assertEquals(10, response.size());
+                    assertEquals(2L, response.totalElements());
+                    assertEquals(1, response.totalPages());
+
+                    Application firstApp = response.content().get(0);
+                    assertEquals("12345678", firstApp.getDocumentId());
+                    assertEquals("test1@example.com", firstApp.getEmail());
+                    assertEquals(new BigDecimal("500000"), firstApp.getAmount());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getApplicationsForManualReviewPaginated_ShouldReturnEmptyPage_WhenNoApplicationsFound() {
+        // Arrange
+        co.com.crediya.solicitudes.model.common.PageRequest pageRequest =
+                co.com.crediya.solicitudes.model.common.PageRequest.of(0, 10);
+
+        State pendingState = State.builder().stateId(1L).name("Pendiente de revision").build();
+        State rejectedState = State.builder().stateId(2L).name("Rechazada").build();
+        State manualState = State.builder().stateId(3L).name("Revision manual").build();
+
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(reactor.core.publisher.Mono.just(pendingState));
+        when(stateRepository.findByName("Rechazada")).thenReturn(reactor.core.publisher.Mono.just(rejectedState));
+        when(stateRepository.findByName("Revision manual")).thenReturn(reactor.core.publisher.Mono.just(manualState));
+        when(applicationRepository.findByStateInWithPagination(
+                java.util.List.of(1L, 2L, 3L), pageRequest))
+                .thenReturn(reactor.core.publisher.Flux.empty());
+        when(applicationRepository.countByStateIn(java.util.List.of(1L, 2L, 3L)))
+                .thenReturn(reactor.core.publisher.Mono.just(0L));
+
+        // Act
+        reactor.core.publisher.Mono<co.com.crediya.solicitudes.model.common.PageResponse<Application>> result =
+                applicationUseCase.getApplicationsForManualReviewPaginated(pageRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertNotNull(response);
+                    assertTrue(response.content().isEmpty());
+                    assertEquals(0, response.page());
+                    assertEquals(10, response.size());
+                    assertEquals(0L, response.totalElements());
+                    assertEquals(0, response.totalPages());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getApplicationsForManualReviewPaginated_ShouldThrowException_WhenStateNotFound() {
+        // Arrange
+        co.com.crediya.solicitudes.model.common.PageRequest pageRequest =
+                co.com.crediya.solicitudes.model.common.PageRequest.of(0, 10);
+
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(reactor.core.publisher.Mono.empty());
+        when(stateRepository.findByName("Rechazada")).thenReturn(reactor.core.publisher.Mono.empty());
+        when(stateRepository.findByName("Revision manual")).thenReturn(reactor.core.publisher.Mono.empty());
+
+        // Act
+        reactor.core.publisher.Mono<co.com.crediya.solicitudes.model.common.PageResponse<Application>> result =
+                applicationUseCase.getApplicationsForManualReviewPaginated(pageRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectError(IllegalStateException.class)
+                .verify();
+    }
+
+    @Test
+    void getApplicationsForManualReviewPaginated_ShouldHandleLargePageSize_WhenRequestedPageSizeIsLarge() {
+        // Arrange
+        co.com.crediya.solicitudes.model.common.PageRequest pageRequest =
+                co.com.crediya.solicitudes.model.common.PageRequest.of(0, 100);
+
+        State pendingState = State.builder().stateId(1L).name("Pendiente de revision").build();
+        State rejectedState = State.builder().stateId(2L).name("Rechazada").build();
+        State manualState = State.builder().stateId(3L).name("Revision manual").build();
+
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(reactor.core.publisher.Mono.just(pendingState));
+        when(stateRepository.findByName("Rechazada")).thenReturn(reactor.core.publisher.Mono.just(rejectedState));
+        when(stateRepository.findByName("Revision manual")).thenReturn(reactor.core.publisher.Mono.just(manualState));
+        when(applicationRepository.findByStateInWithPagination(
+                java.util.List.of(1L, 2L, 3L), pageRequest))
+                .thenReturn(reactor.core.publisher.Flux.empty());
+        when(applicationRepository.countByStateIn(java.util.List.of(1L, 2L, 3L)))
+                .thenReturn(reactor.core.publisher.Mono.just(0L));
+
+        // Act
+        reactor.core.publisher.Mono<co.com.crediya.solicitudes.model.common.PageResponse<Application>> result =
+                applicationUseCase.getApplicationsForManualReviewPaginated(pageRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertNotNull(response);
+                    assertEquals(0, response.page());
+                    assertEquals(100, response.size());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getApplicationsForManualReviewPaginated_ShouldHandleRepositoryError_WhenDatabaseFails() {
+        // Arrange
+        co.com.crediya.solicitudes.model.common.PageRequest pageRequest =
+                co.com.crediya.solicitudes.model.common.PageRequest.of(0, 10);
+
+        State pendingState = State.builder().stateId(1L).name("Pendiente de revision").build();
+        State rejectedState = State.builder().stateId(2L).name("Rechazada").build();
+        State manualState = State.builder().stateId(3L).name("Revision manual").build();
+
+        when(stateRepository.findByName("Pendiente de revision")).thenReturn(reactor.core.publisher.Mono.just(pendingState));
+        when(stateRepository.findByName("Rechazada")).thenReturn(reactor.core.publisher.Mono.just(rejectedState));
+        when(stateRepository.findByName("Revision manual")).thenReturn(reactor.core.publisher.Mono.just(manualState));
+        when(applicationRepository.findByStateInWithPagination(
+                java.util.List.of(1L, 2L, 3L), pageRequest))
+                .thenReturn(reactor.core.publisher.Flux.error(new RuntimeException("Database connection failed")));
+        when(applicationRepository.countByStateIn(java.util.List.of(1L, 2L, 3L)))
+                .thenReturn(reactor.core.publisher.Mono.just(0L));
+
+        // Act
+        reactor.core.publisher.Mono<co.com.crediya.solicitudes.model.common.PageResponse<Application>> result =
+                applicationUseCase.getApplicationsForManualReviewPaginated(pageRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof RuntimeException &&
+                        throwable.getMessage().contains("Database connection failed"))
+                .verify();
     }
 }

@@ -1,7 +1,7 @@
 package co.com.crediya.solicitudes.webclient;
 
 import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
-import co.com.crediya.solicitudes.webclient.config.AuthServiceEndpoints;
+import co.com.crediya.solicitudes.webclient.config.AuthServiceProperties;
 import co.com.crediya.solicitudes.webclient.dto.UserResponse;
 import co.com.crediya.solicitudes.webclient.util.AuthServiceUtils;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 public class AuthServiceClient implements ClientValidationRepository {
 
     private final WebClient webClient;
-    private final String authServiceBaseUrl;
+    private final AuthServiceProperties authServiceProperties;
     private final Retry retry;
     private final CircuitBreaker circuitBreaker;
     private final TimeLimiter timeLimiter;
@@ -38,7 +38,7 @@ public class AuthServiceClient implements ClientValidationRepository {
     }
 
     private Mono<UserResponse> getUserFromAuthService(String documentId) {
-        String endpoint = AuthServiceEndpoints.getUserByDocumentUrl(authServiceBaseUrl);
+        String endpoint = authServiceProperties.getUserByDocumentUrl();
 
         return webClient
                 .get()
@@ -53,5 +53,11 @@ public class AuthServiceClient implements ClientValidationRepository {
                 .transformDeferred(TimeLimiterOperator.of(timeLimiter))
                 .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
                 .onErrorMap(ex -> AuthServiceUtils.mapToBusinessException(ex, documentId));
+    }
+
+    public Mono<UserResponse> getUserByDocumentId(String documentId) {
+        log.info("Getting full user info for documentId: {}", documentId);
+        return getUserFromAuthService(documentId)
+                .doOnSuccess(user -> log.info("Full user info retrieved for documentId: {}", documentId));
     }
 }

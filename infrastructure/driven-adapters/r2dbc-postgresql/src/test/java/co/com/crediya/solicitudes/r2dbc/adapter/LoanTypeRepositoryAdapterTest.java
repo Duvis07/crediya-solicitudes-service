@@ -40,7 +40,7 @@ class LoanTypeRepositoryAdapterTest {
     }
 
     @Test
-    void findByName_ShouldReturnLoanType_WhenLoanTypeExists() {
+    void findByNameShouldReturnLoanTypeWhenLoanTypeExists() {
         // Arrange
         String loanTypeName = "Prestamo Personal";
 
@@ -87,7 +87,7 @@ class LoanTypeRepositoryAdapterTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"Nonexistent Loan Type"})
-    void findByName_ShouldReturnEmpty_WhenLoanTypeNotFoundOrInvalidName(String loanTypeName) {
+    void findByNameShouldReturnEmptyWhenLoanTypeNotFoundOrInvalidName(String loanTypeName) {
         // Arrange
         when(loanTypeEntityRepository.findByName(loanTypeName))
                 .thenReturn(Mono.empty());
@@ -101,7 +101,7 @@ class LoanTypeRepositoryAdapterTest {
     }
 
     @Test
-    void findByName_ShouldHandleError_WhenRepositoryFails() {
+    void findByNameShouldHandleErrorWhenRepositoryFails() {
         // Arrange
         String loanTypeName = "Prestamo Personal";
 
@@ -118,7 +118,7 @@ class LoanTypeRepositoryAdapterTest {
     }
 
     @Test
-    void findByName_ShouldCallMapperCorrectly_WhenEntityFound() {
+    void findByNameShouldCallMapperCorrectlyWhenEntityFound() {
         // Arrange
         String loanTypeName = "Prestamo Hipotecario";
 
@@ -154,6 +154,124 @@ class LoanTypeRepositoryAdapterTest {
                     assertEquals(2L, foundLoanType.getLoanTypeId());
                     assertEquals("Prestamo Hipotecario", foundLoanType.getName());
                     assertFalse(foundLoanType.getAutomaticValidation());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldReturnLoanTypeWhenLoanTypeExists() {
+        // Arrange
+        Long loanTypeId = 1L;
+
+        LoanTypeEntity loanTypeEntity = LoanTypeEntity.builder()
+                .loanTypeId(1L)
+                .name("Prestamo Personal")
+                .interestRate(new BigDecimal("0.1250"))
+                .minimumAmount(new BigDecimal("100000.00"))
+                .maxAmount(new BigDecimal("50000000.00"))
+                .automaticValidation(true)
+                .build();
+
+        LoanType loanType = LoanType.builder()
+                .loanTypeId(1L)
+                .name("Prestamo Personal")
+                .interestRate(new BigDecimal("0.1250"))
+                .minimumAmount(new BigDecimal("100000.00"))
+                .maxAmount(new BigDecimal("50000000.00"))
+                .automaticValidation(true)
+                .build();
+
+        when(loanTypeEntityRepository.findById(loanTypeId))
+                .thenReturn(Mono.just(loanTypeEntity));
+        when(loanTypeMapper.toDomain(loanTypeEntity))
+                .thenReturn(loanType);
+
+        // Act
+        Mono<LoanType> result = loanTypeRepositoryAdapter.findById(loanTypeId);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(foundLoanType -> {
+                    assertNotNull(foundLoanType);
+                    assertEquals(1L, foundLoanType.getLoanTypeId());
+                    assertEquals("Prestamo Personal", foundLoanType.getName());
+                    assertEquals(new BigDecimal("0.1250"), foundLoanType.getInterestRate());
+                    assertEquals(new BigDecimal("100000.00"), foundLoanType.getMinimumAmount());
+                    assertEquals(new BigDecimal("50000000.00"), foundLoanType.getMaxAmount());
+                    assertTrue(foundLoanType.getAutomaticValidation());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldReturnEmptyWhenLoanTypeNotFound() {
+        // Arrange
+        Long loanTypeId = 999L;
+
+        when(loanTypeEntityRepository.findById(loanTypeId))
+                .thenReturn(Mono.empty());
+
+        // Act
+        Mono<LoanType> result = loanTypeRepositoryAdapter.findById(loanTypeId);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void findByIdShouldHandleErrorWhenRepositoryFails() {
+        // Arrange
+        Long loanTypeId = 1L;
+
+        when(loanTypeEntityRepository.findById(loanTypeId))
+                .thenReturn(Mono.error(new RuntimeException("Database connection error")));
+
+        // Act
+        Mono<LoanType> result = loanTypeRepositoryAdapter.findById(loanTypeId);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {2L, 3L})
+    void findByIdShouldReturnCorrectLoanTypeForDifferentIds(Long loanTypeId) {
+        // Arrange
+        LoanTypeEntity loanTypeEntity = LoanTypeEntity.builder()
+                .loanTypeId(loanTypeId)
+                .name("Prestamo Vehicular")
+                .interestRate(new BigDecimal("0.1150"))
+                .minimumAmount(new BigDecimal("5000000.00"))
+                .maxAmount(new BigDecimal("100000000.00"))
+                .automaticValidation(true)
+                .build();
+
+        LoanType loanType = LoanType.builder()
+                .loanTypeId(loanTypeId)
+                .name("Prestamo Vehicular")
+                .interestRate(new BigDecimal("0.1150"))
+                .minimumAmount(new BigDecimal("5000000.00"))
+                .maxAmount(new BigDecimal("100000000.00"))
+                .automaticValidation(true)
+                .build();
+
+        when(loanTypeEntityRepository.findById(loanTypeId))
+                .thenReturn(Mono.just(loanTypeEntity));
+        when(loanTypeMapper.toDomain(loanTypeEntity))
+                .thenReturn(loanType);
+
+        // Act
+        Mono<LoanType> result = loanTypeRepositoryAdapter.findById(loanTypeId);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(foundLoanType -> {
+                    assertEquals(loanTypeId, foundLoanType.getLoanTypeId());
+                    assertEquals("Prestamo Vehicular", foundLoanType.getName());
+                    assertEquals(new BigDecimal("0.1150"), foundLoanType.getInterestRate());
                 })
                 .verifyComplete();
     }
