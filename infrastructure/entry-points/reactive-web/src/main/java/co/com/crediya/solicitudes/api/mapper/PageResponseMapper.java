@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.api.mapper;
 
 import co.com.crediya.solicitudes.api.dto.ApplicationDetailResponse;
+import co.com.crediya.solicitudes.api.service.ApplicationDetailService;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import java.util.Map;
 @Slf4j
 public class PageResponseMapper {
 
-    private final ApplicationDetailMapper applicationDetailMapper;
+    private final ApplicationDetailService applicationDetailService;
 
     public Mono<Map<String, Object>> buildPageResponseWithDetails(PageResponse<Application> pageResponse) {
         if (pageResponse.content().isEmpty()) {
@@ -25,7 +26,7 @@ public class PageResponseMapper {
         }
         
         return Flux.fromIterable(pageResponse.content())
-                .flatMap(applicationDetailMapper::toDetailResponse)
+                .flatMap(applicationDetailService::buildDetailResponse)
                 .collectList()
                 .map(applicationDetails -> buildPageMetadata(pageResponse, applicationDetails))
                 .doOnSuccess(response -> log.debug("Built page response with {} items", 
