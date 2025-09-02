@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html").permitAll()
                         .pathMatchers("/actuator/health").permitAll()
+                        .pathMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/solicitud").permitAll()
                         .anyExchange().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)

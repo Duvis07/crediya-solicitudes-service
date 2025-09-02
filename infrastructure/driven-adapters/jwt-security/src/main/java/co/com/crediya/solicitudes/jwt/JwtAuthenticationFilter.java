@@ -39,7 +39,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().value();
         
         // Skip JWT validation for non-protected endpoints
-        if (isPublicEndpoint(path)) {
+        if (isPublicEndpoint(path, exchange)) {
             return chain.filter(exchange);
         }
 
@@ -86,11 +86,16 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .getBody());
     }
 
-    private boolean isPublicEndpoint(String path) {
+    private boolean isPublicEndpoint(String path, ServerWebExchange exchange) {
         return path.startsWith("/swagger") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/webjars") ||
-               path.equals("/actuator/health");
+               path.equals("/actuator/health") ||
+               (path.equals("/api/v1/solicitud") && isPostRequest(exchange));
+    }
+    
+    private boolean isPostRequest(ServerWebExchange exchange) {
+        return "POST".equals(exchange.getRequest().getMethod().name());
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
