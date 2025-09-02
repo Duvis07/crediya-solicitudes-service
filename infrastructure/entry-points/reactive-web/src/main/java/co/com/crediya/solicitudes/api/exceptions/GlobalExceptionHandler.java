@@ -6,6 +6,7 @@ import co.com.crediya.solicitudes.model.exceptions.InvalidApplicationDataExcepti
 import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import co.com.crediya.solicitudes.model.exceptions.ServiceUnavailableException;
+import co.com.crediya.solicitudes.model.exceptions.UserServiceException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -43,17 +44,22 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
 
     private final ObjectMapper objectMapper;
 
-    private final Map<Class<? extends Throwable>, Function<Throwable, ErrorMappingResult>> exceptionMappings = Map.of(
-            ApplicationNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null),
-            LoanTypeNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null),
-            InvalidApplicationDataException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, ex.getMessage(), null),
-            ClientNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null),
-            ServiceUnavailableException.class, ex -> new ErrorMappingResult(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null),
-            ValidationException.class, this::handleValidationException,
-            NumberFormatException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, INVALID_FORMAT_MESSAGE, null),
-            ServerWebInputException.class, this::handleWebInputException,
-            DecodingException.class, this::handleDecodingException
-    );
+    private final Map<Class<? extends Throwable>, Function<Throwable, ErrorMappingResult>> exceptionMappings = initializeExceptionMappings();
+
+    private Map<Class<? extends Throwable>, Function<Throwable, ErrorMappingResult>> initializeExceptionMappings() {
+        Map<Class<? extends Throwable>, Function<Throwable, ErrorMappingResult>> mappings = new java.util.HashMap<>();
+        mappings.put(ApplicationNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null));
+        mappings.put(LoanTypeNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null));
+        mappings.put(InvalidApplicationDataException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
+        mappings.put(ClientNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null));
+        mappings.put(ServiceUnavailableException.class, ex -> new ErrorMappingResult(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null));
+        mappings.put(UserServiceException.class, ex -> new ErrorMappingResult(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null));
+        mappings.put(ValidationException.class, this::handleValidationException);
+        mappings.put(NumberFormatException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, INVALID_FORMAT_MESSAGE, null));
+        mappings.put(ServerWebInputException.class, this::handleWebInputException);
+        mappings.put(DecodingException.class, this::handleDecodingException);
+        return mappings;
+    }
 
     @Override
     @NonNull
