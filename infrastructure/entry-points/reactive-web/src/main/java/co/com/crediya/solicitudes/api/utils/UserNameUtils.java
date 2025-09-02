@@ -6,12 +6,15 @@ import lombok.experimental.UtilityClass;
 public class UserNameUtils {
 
     public static String buildFullName(String firstName, String lastName) {
-        if (firstName != null && lastName != null) {
-            return firstName.trim() + " " + lastName.trim();
-        } else if (firstName != null) {
-            return firstName.trim();
-        } else if (lastName != null) {
-            return lastName.trim();
+        String trimmedFirst = (firstName != null) ? firstName.trim() : "";
+        String trimmedLast = (lastName != null) ? lastName.trim() : "";
+        
+        if (!trimmedFirst.isEmpty() && !trimmedLast.isEmpty()) {
+            return trimmedFirst + " " + trimmedLast;
+        } else if (!trimmedFirst.isEmpty()) {
+            return trimmedFirst;
+        } else if (!trimmedLast.isEmpty()) {
+            return trimmedLast;
         }
         return "";
     }
