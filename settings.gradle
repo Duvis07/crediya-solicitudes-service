@@ -26,3 +26,5 @@ include ':reactive-web'
 project(':reactive-web').projectDir = file('./infrastructure/entry-points/reactive-web')
 include ':webclient-auth'
 project(':webclient-auth').projectDir = file('./infrastructure/driven-adapters/webclient-auth')
+include ':jwt-security'
+project(':jwt-security').projectDir = file('./infrastructure/driven-adapters/jwt-security')

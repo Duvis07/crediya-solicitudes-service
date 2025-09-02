@@ -5,6 +5,7 @@ dependencies {
     implementation project(':reactive-web')
     implementation project(':r2dbc-postgresql')
     implementation project(':webclient-auth')
+    implementation project(':jwt-security')
     implementation project(':model')
     implementation project(':usecase')
 
