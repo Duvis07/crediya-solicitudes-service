@@ -30,10 +30,7 @@ public class PageResponseMapper {
                 .map(applicationDetails -> buildPageMetadata(pageResponse, applicationDetails))
                 .doOnSuccess(response -> log.debug("Built page response with {} items", 
                         ((List<?>) response.get("content")).size()))
-                .onErrorResume(error -> {
-                    log.error("Error building page response: {}", error.getMessage());
-                    return Mono.just(buildPageMetadata(pageResponse, List.of()));
-                });
+                .doOnError(error -> log.error("Error building page response: {}", error.getMessage()));
     }
     
     private Map<String, Object> buildPageMetadata(PageResponse<Application> pageResponse, 
