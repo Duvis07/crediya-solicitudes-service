@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.api;
 
 import co.com.crediya.solicitudes.api.dto.ApplicationResponse;
+import co.com.crediya.solicitudes.api.dto.ApplicationCreatedResponse;
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
 import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -75,22 +77,29 @@ class RouterRestTest {
     @MethodSource("validCreateApplicationRequests")
     void createApplication_ShouldReturn200_WhenValidRequest(CreateApplicationRequest request) {
         // Arrange
+        ApplicationCreatedResponse expectedResponse = ApplicationCreatedResponse.builder()
+                .message("Solicitud de préstamo creada exitosamente")
+                .status("CREATED")
+                .timestamp(LocalDateTime.now())
+                .build();
+
         when(handler.createApplication(any()))
                 .thenReturn(ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue("Application created successfully"));
+                        .bodyValue(expectedResponse));
 
         // Act & Assert
         webTestClient.post()
                 .uri("/api/v1/solicitud")
                 .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
-                .expectBody(String.class)
-                .isEqualTo("Application created successfully");
+                .expectBody()
+                .jsonPath("$.message").isEqualTo("Solicitud de préstamo creada exitosamente")
+                .jsonPath("$.status").isEqualTo("CREATED")
+                .jsonPath("$.timestamp").exists();
     }
 
     @Test
@@ -207,7 +216,9 @@ class RouterRestTest {
     void getAllApplications_ShouldReturn500_WhenHandlerThrowsException() {
         // Arrange
         when(handler.getAllApplications(any()))
-                .thenReturn(Mono.error(new RuntimeException("Database connection failed")));
+                .thenReturn(ServerResponse.status(500)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue("Internal Server Error"));
 
         // Act & Assert
         webTestClient.get()

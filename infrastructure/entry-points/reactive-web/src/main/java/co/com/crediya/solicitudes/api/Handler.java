@@ -1,5 +1,6 @@
 package co.com.crediya.solicitudes.api;
 
+import co.com.crediya.solicitudes.api.dto.ApplicationCreatedResponse;
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
 import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
 import co.com.crediya.solicitudes.api.validator.RequestValidator;
@@ -30,9 +31,12 @@ public class Handler {
                     var application = applicationDtoMapper.toDomain(validatedReq);
                     return applicationUseCase.createApplication(application, validatedReq.getLoanType());
                 })
-                .flatMap(application -> ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue("Application created successfully"))
+                .flatMap(application -> {
+                    ApplicationCreatedResponse response = ApplicationCreatedResponse.success();
+                    return ServerResponse.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                })
                 .doOnSuccess(response -> log.info("Application created successfully"))
                 .doOnError(error -> log.error("Error creating application: {}", error.getMessage()));
     }
