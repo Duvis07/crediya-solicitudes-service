@@ -36,6 +36,10 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI}
           issuer-uri: ${JWT_ISSUER_URI}
 
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET}
+
 #logging:
 #  level:
 #    co.com.crediya.solicitudes: DEBUG
