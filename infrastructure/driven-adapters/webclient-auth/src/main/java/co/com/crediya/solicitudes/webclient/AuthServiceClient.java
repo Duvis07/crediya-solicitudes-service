@@ -54,4 +54,10 @@ public class AuthServiceClient implements ClientValidationRepository {
                 .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
                 .onErrorMap(ex -> AuthServiceUtils.mapToBusinessException(ex, documentId));
     }
+
+    public Mono<UserResponse> getUserByDocumentId(String documentId) {
+        log.info("Getting full user info for documentId: {}", documentId);
+        return getUserFromAuthService(documentId)
+                .doOnSuccess(user -> log.info("Full user info retrieved for documentId: {}", documentId));
+    }
 }
