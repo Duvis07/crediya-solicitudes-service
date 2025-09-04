@@ -42,7 +42,7 @@ public class AuthServiceClient implements ClientValidationRepository {
 
         return webClient
                 .get()
-                .uri(endpoint, documentId)
+                .uri(endpoint.replace("{documentId}", documentId))
                 .retrieve()
                 .bodyToMono(UserResponse.class)
                 .onErrorResume(WebClientResponseException.NotFound.class,

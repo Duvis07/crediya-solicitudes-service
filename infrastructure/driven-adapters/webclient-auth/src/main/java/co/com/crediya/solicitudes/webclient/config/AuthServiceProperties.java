@@ -20,6 +20,9 @@ public class AuthServiceProperties {
     }
     
     public String getUserByDocumentUrl() {
-        return baseUrl + endpoints.getUserByDocument();
+        return baseUrl + 
+               (endpoints.getApiBase() != null ? endpoints.getApiBase() : "") + 
+               (endpoints.getUsersBase() != null ? endpoints.getUsersBase() : "") + 
+               (endpoints.getUserByDocument() != null ? endpoints.getUserByDocument() : "");
     }
 }

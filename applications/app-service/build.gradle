@@ -13,7 +13,11 @@ dependencies {
     implementation 'org.reactivecommons.utils:object-mapper:0.1.0'
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation('io.github.resilience4j:resilience4j-spring-boot3:2.1.0') {
+        exclude group: 'org.springframework.security', module: 'spring-security-oauth2-resource-server'
+        exclude group: 'org.springframework.security', module: 'spring-security-oauth2-core'
+        exclude group: 'org.springframework.security', module: 'spring-security-oauth2-jose'
+    }
     implementation 'io.github.resilience4j:resilience4j-reactor:2.1.0'
     implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
     implementation 'io.github.resilience4j:resilience4j-retry:2.1.0'

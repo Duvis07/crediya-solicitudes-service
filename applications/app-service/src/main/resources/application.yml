@@ -11,6 +11,12 @@ spring:
   aop:
     auto: true
     proxy-target-class: true
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+#          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
 
 # Database configuration
   r2dbc:
@@ -29,24 +35,18 @@ spring:
       schema-locations: classpath:schema.sql
       continue-on-error: false
   
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${JWT_JWK_SET_URI}
-          issuer-uri: ${JWT_ISSUER_URI}
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET}
 
-#logging:
-#  level:
-#    co.com.crediya.solicitudes: DEBUG
-#    org.springframework.r2dbc: DEBUG
-#    org.springframework.security: DEBUG
-#  pattern:
-#    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+logging:
+  level:
+    co.com.crediya.solicitudes: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 management:
   endpoints:
@@ -66,11 +66,10 @@ cors:
 
 # Authentication service configuration
 auth-service:
-  base-url: ${AUTH_SERVICE_URL}
+  base-url: ${AUTH_SERVICE_BASE_URL}
   endpoints:
-    api-base: ${AUTH_SERVICE_API_BASE}
-    users-base: ${AUTH_SERVICE_USERS_BASE}
-    user-by-document: ${AUTH_SERVICE_USER_BY_DOCUMENT}
+    api-base: ${AUTH_SERVICE_ENDPOINTS_API_BASE}
+    user-by-document: ${AUTH_SERVICE_ENDPOINTS_USER_BY_DOCUMENT}
 
 # Resilience4j configuration
 resilience4j:
