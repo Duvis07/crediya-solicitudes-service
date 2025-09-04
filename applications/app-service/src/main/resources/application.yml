@@ -40,13 +40,13 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
-logging:
-  level:
-    co.com.crediya.solicitudes: DEBUG
-    org.springframework.r2dbc: DEBUG
-    org.springframework.security: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#logging:
+#  level:
+#    co.com.crediya.solicitudes: DEBUG
+#    org.springframework.r2dbc: DEBUG
+#    org.springframework.security: DEBUG
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 management:
   endpoints:
