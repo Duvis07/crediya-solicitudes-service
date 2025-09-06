@@ -20,6 +20,7 @@ public class ApplicationDetailMapper {
             BigDecimal totalMonthlyDebt) {
         
         return ApplicationDetailResponse.builder()
+                .applicationId(application.getApplicationId())
                 .amount(application.getAmount())
                 .term(application.getTerm())
                 .applicationState(applicationState)

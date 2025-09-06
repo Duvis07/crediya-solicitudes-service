@@ -7,6 +7,8 @@ import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import co.com.crediya.solicitudes.model.exceptions.ServiceUnavailableException;
 import co.com.crediya.solicitudes.model.exceptions.UserServiceException;
+import co.com.crediya.solicitudes.model.exceptions.InvalidStateTransitionException;
+import co.com.crediya.solicitudes.model.exceptions.InvalidTargetStatusException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -54,6 +56,8 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         mappings.put(ClientNotFoundException.class, ex -> new ErrorMappingResult(HttpStatus.NOT_FOUND, ex.getMessage(), null));
         mappings.put(ServiceUnavailableException.class, ex -> new ErrorMappingResult(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null));
         mappings.put(UserServiceException.class, ex -> new ErrorMappingResult(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null));
+        mappings.put(InvalidStateTransitionException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
+        mappings.put(InvalidTargetStatusException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
         mappings.put(ValidationException.class, this::handleValidationException);
         mappings.put(NumberFormatException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, INVALID_FORMAT_MESSAGE, null));
         mappings.put(ServerWebInputException.class, this::handleWebInputException);

@@ -122,3 +122,88 @@ Como Asesor Quiero ver un listado de todas las solicitudes que necesitan mi revi
  El sistema muestra una lista paginada y filtrable de solicitudes pendientes de la decisión del administrador.
 
 - Debe retornar un listado de solicitudes (monto, plazo, email, nombre, tipo_prestamo, tasa_interes, estado_solicitud, salario_base, deuda_total_mensual_solicitudes_aprobadas)
+
+---------------------------------------------------------------------------------
+HU5 Agregar contenerización a los microservicios	
+
+Como equipo de desarrollo Necesito que cada microservicio de nuestro sistema (SOLICITUDES, AUTENTICACION) esté empaquetado en un contenedor Docker, y que todos puedan ser orquestados para funcionar juntos como un único servicio en un entorno local. Esto asegurará que la aplicación funcione de manera uniforme en cualquier entorno.	- Se crea un Dockerfile para cada microservicio.
+
+- Se crea un archivo docker-compose.yml que define la red, los servicios de aplicación y las bases de datos (por ejemplo, MySQL).
+
+- La aplicación dentro del contenedor debe exponer el puerto correcto y ser accesible.
+
+- Se valida que los microservicios se comuniquen correctamente entre ellos utilizando los nombres de los servicios definidos en el archivo de Docker Compose (por ejemplo, la URL para el servicio de riesgo sería http://evaluacion-riesgo:8080).
+
+- Se valida que las bases de datos persistan la información correctamente, incluso después de reiniciar los contenedores.-
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados	- Todos los microservicios (SOLICITUDES, AUTENTICACION) pueden ser ejecutados de forma local dentro de contenedores Docker.
+
+- El comportamiento de cada microservicio dentro del contenedor es idéntico a su comportamiento al ser ejecutado de forma nativa.
+
+- La aplicación completa (SOLICITUDES llamando a AUTENTICACION) puede ser levantada con un solo comando en el entorno local.
+
+-------------------------------------------------------------------------------
+HU6 Aprobar o rechazar solicitud de credito
+
+Como asesor, quiero poder aprobar o rechazar manualmente las solicitudes para tomar la decisión final. Como solicitante, quiero ser notificado por correo electrónico con la decisión final.	- microservicio SOLICITUDES con WebFlux.
+
+- El endpoint (PUT /api/v1/solicitud)
+
+- roles que pueden usar este endpoint (Asesor)
+
+- Al actualizar el estado a "Aprobado" o "Rechazado", el microservicio SOLICITUDES debe enviar un mensaje a una cola de SQS.
+
+- Se creará una lambda de NOTIFICACIONES. Este debe escuchar los mensajes de SQS y utilizar SNS para el envío del correo electrónico.
+
+- Se deben agregar logs de traza para monitorear
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados	- Se puede cambiar el estado de una solicitud a "Aprobada" o "Rechazada".
+
+- Al cambiar el estado, el solicitante recibe una notificación por correo electrónico con la decisión final.
+
+- El proceso de cambio de estado y la notificación deben ser consistentes.
+
+----------------------------------------------------------------------------------------------------------------------------------
+HU7 Agregar al sistema prestamo con validación automatica
+
+Como sistema de análisis de crédito, quiero calcular la capacidad de endeudamiento DISPONIBLE de un solicitante (restando sus cuotas de préstamos activos), para tomar una decisión de aprobación o rechazo más precisa y responsable.	- Lambda CAPACIDAD DE ENDEUDAMIENTO
+
+- El endpoint (POST /api/v1/calcular-capacidad)
+
+- Debe seguir los principios de la arquitectura hexagonal, separando el dominio de la infraestructura.
+
+- La lambda de calcular capacidad debe responder con un resultado claro (ej. "APROBADO", "RECHAZADO") que el microservicio de solicitudes utilizará para actualizar el estado.
+
+- La actualización del estado de la solicitud en la base de datos de solicitudes debe ser una operación atómica.
+
+- Se deben agregar logs de traza para monitorear
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados
+- Si se crea una solicitud con un tipo de prestamo que tenga habilita la opción de "validacion_automatica", el sistema debera encolar la petición desde el microservicio SOLICITUDES, para que la lambda de CAPACIDAD DE ENDEUDAMIENTO lo procese
+
+- Cálculo de la Capacidad de Endeudamiento Máxima:
+- Se establece una política de riesgo donde un solicitante no puede destinar más del 35% de sus ingresos totales al pago de deudas.
+- Fórmula: CapacidadEndeudamientoMaxima = IngresosTotales * 0.35
+
+- Cálculo de Deuda Mensual Actual:
+- El sistema debe tener el estado de todos los préstamos del solicitante que tengan un estado = 'Aprobado'.
+- Para cada préstamo activo encontrado, se debe calcular su cuota mensual utilizando la fórmula de amortización.
+- Se suman todas las cuotas calculadas para obtener el total de las obligaciones mensuales actuales.
+- Fórmula: DeudaMensualActual = SUM(CuotaMensual_de_cada_prestamo_activo)
+
+- Cálculo de la Capacidad de Endeudamiento Disponible:
+- Es la capacidad máxima menos las deudas que el solicitante ya tiene activas.
+- Fórmula: CapacidadDisponible = (CapacidadEndeudamientoMaxima - DeudaMensualActual)
+
+- Cálculo de la Cuota del Nuevo Préstamo y Decisión Final:
+- Se calcula la cuota mensual para el nuevo préstamo que se está evaluando (CuotaPrestamoNuevo).
+- Fórmula de Cuota:
+Cuota=P(1+i)n−1i(1+i)n
+Donde: P= Monto, i= Tasa de interés mensual, n= Plazo en meses.
+
+- Lógica de Decisión:
+-- SI CuotaPrestamoNuevo ≤ CapacidadDisponible ➔ El préstamo se APRUEBA.
+--- Si se aprueba y el prestamo es de mas de 5 salarios de la persona, queda en estado "REVISION MANUAL"
+-- SI CuotaPrestamoNuevo > CapacidadDisponible ➔ El préstamo se RECHAZA.
+
+- Debe responder por correo al usuario el plan de pago, osea el listado de todas las cuotas que debe pagar diferenciando el abono a capital del pago de intereses.

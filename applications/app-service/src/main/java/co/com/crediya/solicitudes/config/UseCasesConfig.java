@@ -5,6 +5,7 @@ import co.com.crediya.solicitudes.model.client.gateways.ClientValidationReposito
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
+import co.com.crediya.solicitudes.usecase.application.UpdateApplicationStatusUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,4 +19,12 @@ public class UseCasesConfig {
                                                  ClientValidationRepository clientValidationRepository) {
         return new ApplicationUseCase(applicationRepository, loanTypeRepository, stateRepository, clientValidationRepository);
     }
+
+    @Bean
+    public UpdateApplicationStatusUseCase updateApplicationStatusUseCase(
+            ApplicationRepository applicationRepository,
+            StateRepository stateRepository) {
+        return new UpdateApplicationStatusUseCase(applicationRepository, stateRepository);
+    }
 }
+
