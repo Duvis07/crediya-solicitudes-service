@@ -13,6 +13,7 @@ import co.com.crediya.solicitudes.model.client.gateways.ClientValidationReposito
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import co.com.crediya.solicitudes.model.common.PageRequest;
 import co.com.crediya.solicitudes.model.common.PageResponse;
+import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
@@ -30,6 +31,7 @@ public class ApplicationUseCase {
     private final LoanTypeRepository loanTypeRepository;
     private final StateRepository stateRepository;
     private final ClientValidationRepository clientValidationRepository;
+    private final CapacityEvaluationRepository capacityEvaluationRepository;
 
     private static final Logger log = Logger.getLogger(ApplicationUseCase.class.getName());
 
@@ -48,7 +50,29 @@ public class ApplicationUseCase {
                             .build();
                 })
                 .flatMap(applicationRepository::save)
-                .doOnSuccess(savedApp -> log.info("Application created successfully with ID: " + savedApp.getApplicationId()))
+                .flatMap(savedApp -> {
+                    log.info("Application created successfully with ID: " + savedApp.getApplicationId());
+                    
+                    // Verificar si debe procesarse automáticamente
+                    return capacityEvaluationRepository.esValidacionAutomaticaHabilitada(savedApp.getLoanTypeId())
+                            .flatMap(validacionAutomatica -> {
+                                if (Boolean.TRUE.equals(validacionAutomatica)) {
+                                    log.info("Enviando solicitud " + savedApp.getApplicationId() + " para evaluación automática");
+                                    return capacityEvaluationRepository.enviarParaEvaluacionAutomatica(savedApp)
+                                            .doOnSuccess(messageId -> log.info("Solicitud " + savedApp.getApplicationId() + 
+                                                " encolada para evaluación automática. MessageId: " + messageId))
+                                            .doOnError(error -> log.severe("Error encolando solicitud para evaluación automática: " + error.getMessage()))
+                                            .onErrorResume(error -> {
+                                                log.severe("Falló el encolamiento automático, continuando con flujo manual para solicitud: " + savedApp.getApplicationId());
+                                                return Mono.empty();
+                                            })
+                                            .then(Mono.just(savedApp));
+                                } else {
+                                    log.info("Validación automática deshabilitada para tipo de préstamo: " + savedApp.getLoanTypeId());
+                                    return Mono.just(savedApp);
+                                }
+                            });
+                })
                 .doOnError(error -> log.severe("Error creating application: " + error.getMessage()));
     }
 

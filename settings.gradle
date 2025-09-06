@@ -28,3 +28,5 @@ include ':webclient-auth'
 project(':webclient-auth').projectDir = file('./infrastructure/driven-adapters/webclient-auth')
 include ':jwt-security'
 project(':jwt-security').projectDir = file('./infrastructure/driven-adapters/jwt-security')
+include ':aws-localstack'
+project(':aws-localstack').projectDir = file('./infrastructure/driven-adapters/aws-localstack')

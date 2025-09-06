@@ -6,7 +6,6 @@ import co.com.crediya.solicitudes.api.dto.UpdateApplicationStatusRequest;
 import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
 import co.com.crediya.solicitudes.api.mapper.PageResponseMapper;
 import co.com.crediya.solicitudes.api.mapper.UpdateApplicationStatusMapper;
-import co.com.crediya.solicitudes.api.service.NotificationSimulatorService;
 import co.com.crediya.solicitudes.api.utils.PaginationUtils;
 import co.com.crediya.solicitudes.api.validator.RequestValidator;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
@@ -26,7 +25,6 @@ public class Handler {
 
     private final ApplicationUseCase applicationUseCase;
     private final UpdateApplicationStatusUseCase updateApplicationStatusUseCase;
-    private final NotificationSimulatorService notificationSimulatorService;
     private final ApplicationDtoMapper applicationDtoMapper;
     private final PageResponseMapper pageResponseMapper;
     private final RequestValidator requestValidator;
@@ -77,10 +75,8 @@ public class Handler {
                                                         applicationId,
                                                         validatedRequest.getStatus())
                                                 .doOnSuccess(result ->
-                                                        notificationSimulatorService.simulateEmailNotification(
-                                                                result.application(),
-                                                                validatedRequest.getStatus(),
-                                                                validatedRequest.getComments()))
+                                                        log.info("Application status updated manually to: {} for application ID: {}", 
+                                                                validatedRequest.getStatus(), applicationId))
                                                 .map(result -> updateApplicationStatusMapper.toResponse(
                                                         result,
                                                         applicationId,

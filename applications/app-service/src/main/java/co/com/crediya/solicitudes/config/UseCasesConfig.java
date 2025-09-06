@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.config;
 
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
+import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
@@ -16,8 +17,9 @@ public class UseCasesConfig {
     public ApplicationUseCase applicationUseCase(ApplicationRepository applicationRepository,
                                                  LoanTypeRepository loanTypeRepository,
                                                  StateRepository stateRepository,
-                                                 ClientValidationRepository clientValidationRepository) {
-        return new ApplicationUseCase(applicationRepository, loanTypeRepository, stateRepository, clientValidationRepository);
+                                                 ClientValidationRepository clientValidationRepository,
+                                                 CapacityEvaluationRepository capacityEvaluationRepository) {
+        return new ApplicationUseCase(applicationRepository, loanTypeRepository, stateRepository, clientValidationRepository, capacityEvaluationRepository);
     }
 
     @Bean

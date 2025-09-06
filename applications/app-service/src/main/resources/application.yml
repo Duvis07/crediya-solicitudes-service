@@ -11,6 +11,18 @@ spring:
   aop:
     auto: true
     proxy-target-class: true
+  mail:
+    host: ${MAILHOG_SMTP_HOST:localhost}
+    port: ${MAILHOG_SMTP_PORT:1025}
+    username: 
+    password: 
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+    from: crediya@localhost
 #  security:
 #    oauth2:
 #      resourceserver:
@@ -95,5 +107,15 @@ resilience4j:
     instances:
       auth-service:
         timeout-duration: 30s
+
+# MailHog Configuration for local email testing
+
+# AWS LocalStack Configuration
+aws:
+  localstack:
+    endpoint: ${AWS_LOCALSTACK_ENDPOINT:http://localhost:4566}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:test}
+    secret-key: ${AWS_SECRET_KEY:test}
 
 

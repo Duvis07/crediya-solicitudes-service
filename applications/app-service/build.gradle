@@ -6,6 +6,7 @@ dependencies {
     implementation project(':r2dbc-postgresql')
     implementation project(':webclient-auth')
     implementation project(':jwt-security')
+    implementation project(':aws-localstack')
     implementation project(':model')
     implementation project(':usecase')
 
@@ -24,6 +25,17 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
     implementation 'org.springframework:spring-aop'
     implementation 'org.aspectj:aspectjweaver'
+
+    // --- AWS SDK para LocalStack ---
+    implementation 'software.amazon.awssdk:s3:2.20.162'
+    implementation 'software.amazon.awssdk:sqs:2.20.162'
+    implementation 'software.amazon.awssdk:sns:2.20.162'
+    implementation 'software.amazon.awssdk:lambda:2.20.162'
+    implementation 'software.amazon.awssdk:dynamodb:2.20.162'
+    implementation 'software.amazon.awssdk:ses:2.20.162'
+    implementation 'software.amazon.awssdk:secretsmanager:2.20.162'
+    implementation 'software.amazon.awssdk:iam:2.20.162'
+    implementation 'software.amazon.awssdk:netty-nio-client:2.20.162'
 
     // --- Dependencias de desarrollo ---
     runtimeOnly 'org.springframework.boot:spring-boot-devtools'
