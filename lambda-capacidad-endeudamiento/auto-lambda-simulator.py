@@ -197,8 +197,7 @@ class AutoLambdaSimulator:
                 
     def run(self):
         """Ejecuta el simulador en loop continuo"""
-        logger.info("🚀 Iniciando Auto Lambda Simulator...")
-        logger.info("🔍 Monitoreando cola cada 30 segundos...")
+        logger.info("🚀 Iniciando Lambda...")
         logger.info("📧 Presione Ctrl+C para detener")
         
         # Crear colas al inicio
