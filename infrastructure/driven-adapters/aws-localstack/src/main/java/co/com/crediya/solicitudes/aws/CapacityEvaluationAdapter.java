@@ -45,7 +45,7 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
                 .nombreCompleto("Cliente") // Default name
                 .timestamp(System.currentTimeMillis())
                 .build())
-        .flatMap(sqsService::enviarSolicitudParaEvaluacion)
+        .flatMap(sqsService::sendApplicationForEvaluation)
         .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
             application.getApplicationId(), messageId))
         .doOnError(error -> log.error("Error sending application {} to SQS: {}", 
@@ -105,9 +105,9 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
 
     private String mapDecisionToState(String decision) {
         return switch (decision) {
-            case "APPROVED" -> "Aprobada";
-            case "REJECTED" -> "Rechazada";
-            case "MANUAL_REVIEW" -> "Revision manual";
+            case "APPROVED", "APROBADO" -> "Aprobada";
+            case "REJECTED", "RECHAZADO" -> "Rechazada";
+            case "MANUAL_REVIEW", "REVISION_MANUAL" -> "Revision manual";
             default -> "Pendiente de revision";
         };
     }
