@@ -27,6 +27,9 @@ dependencies {
     implementation project(':model')
     implementation project(':usecase')
     
+    // WebClient Auth for authentication service integration
+    implementation project(':webclient-auth')
+    
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'

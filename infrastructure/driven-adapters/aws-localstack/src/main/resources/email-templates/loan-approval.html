@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préstamo Aprobado - CrediYa Financial</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a5f 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 30px;
+        }
+        .success-banner {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .congratulations {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .congratulations .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .congratulations h2 {
+            color: #16a34a;
+            font-size: 24px;
+            margin: 0;
+        }
+        .congratulations p {
+            color: #666;
+            font-size: 16px;
+            margin: 10px 0 0 0;
+        }
+        .details-box {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .details-table td:first-child {
+            width: 40%;
+            color: #6c757d;
+        }
+        .details-table td:last-child {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .payment-schedule {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .payment-schedule th,
+        .payment-schedule td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .payment-schedule th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #495057;
+        }
+        .payment-schedule tr:hover {
+            background-color: #f8f9fa;
+        }
+        .next-steps {
+            background-color: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .next-steps h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .next-steps ol {
+            margin-bottom: 0;
+        }
+        .next-steps li {
+            margin-bottom: 8px;
+        }
+        .contact-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .contact-info h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer hr {
+            border: none;
+            border-top: 1px solid #dee2e6;
+            margin: 15px 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                box-shadow: none;
+            }
+            .content {
+                padding: 20px;
+            }
+            .header {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 CREDIYA FINANCIAL</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Su Socio Financiero de Confianza</p>
+        </div>
+        
+        <div class="content">
+            <div class="success-banner">
+                <h2 style="margin: 0; font-size: 22px;">🎉 ¡FELICIDADES!</h2>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Su préstamo ha sido APROBADO</p>
+            </div>
+            
+            <p style="font-size: 16px; margin-bottom: 20px;">Estimado/a {{nombreCompleto}},</p>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">Nos complace informarle que su solicitud de préstamo ha sido <strong style="color: #28a745;">APROBADA</strong>. Agradecemos su confianza en CrediYa Financial Services.</p>
+            
+            <div class="info-box">
+                <h3>📋 DETALLES DEL PRÉSTAMO</h3>
+                <table class="details-table">
+                    <tr>
+                        <td><strong>ID de Solicitud:</strong></td>
+                        <td>{{solicitudId}}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Monto Aprobado:</strong></td>
+                        <td>${{montoAprobado}}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cuota Mensual:</strong></td>
+                        <td>${{cuotaMensual}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            {{#planPagos}}
+            <div class="info-box">
+                <h3>📅 CRONOGRAMA DE PAGOS</h3>
+                <table class="payment-schedule">
+                    <thead>
+                        <tr>
+                            <th>Cuota</th>
+                            <th>Fecha Vencimiento</th>
+                            <th>Capital</th>
+                            <th>Interés</th>
+                            <th>Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Payment rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            {{/planPagos}}
+            {{^planPagos}}
+            <div class="info-box">
+                <p><em>El cronograma detallado de pagos será proporcionado por su asesor financiero.</em></p>
+            </div>
+            {{/planPagos}}
+
+            <div class="next-steps">
+                <h3>📋 PRÓXIMOS PASOS</h3>
+                <ol>
+                    <li>Un asesor financiero se comunicará con usted dentro de las próximas 24 horas</li>
+                    <li>Por favor prepare la documentación requerida</li>
+                    <li>Una vez completado el proceso, los fondos serán desembolsados</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <h3>📞 INFORMACIÓN DE CONTACTO</h3>
+            <p><strong>Servicio al Cliente:</strong> +1 (555) 123-4567</p>
+            <p><strong>Email:</strong> soporte@crediya.com</p>
+            <p><strong>Sitio Web:</strong> www.crediya.com</p>
+        </div>
+
+        <div class="footer">
+            <p>Gracias por elegir CrediYa Financial Services.</p>
+            <p><strong>Atentamente,<br>El Equipo de CrediYa</strong></p>
+            <hr>
+            <p><small>Este es un mensaje automático. Por favor no responda a este correo.</small></p>
+        </div>
+    </div>
+</body>
+</html>

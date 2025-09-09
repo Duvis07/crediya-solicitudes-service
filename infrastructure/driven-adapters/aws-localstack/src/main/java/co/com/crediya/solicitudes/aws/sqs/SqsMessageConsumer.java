@@ -135,7 +135,7 @@ public class SqsMessageConsumer {
             .flatMap(application -> {
                 // Send email notification based on decision
                 return switch (resultado.getDecision()) {
-                    case "APROBADO" -> emailNotificationService.enviarNotificacionPlanPagos(
+                    case "APROBADO" -> emailNotificationService.sendPaymentPlanNotification(
                         resultado.getEmail(),
                         resultado.getNombreCompleto(),
                         resultado.getSolicitudId(),
@@ -143,13 +143,13 @@ public class SqsMessageConsumer {
                         resultado.getCuotaCalculada(),
                         resultado.getPlanPagos()
                     );
-                    case "RECHAZADO" -> emailNotificationService.enviarNotificacionRechazo(
+                    case "RECHAZADO" -> emailNotificationService.sendRejectionNotification(
                         resultado.getEmail(),
                         resultado.getNombreCompleto(),
                         resultado.getSolicitudId(),
                         resultado.getMotivo()
                     );
-                    case "REVISION_MANUAL" -> emailNotificationService.enviarNotificacionRevisionManual(
+                    case "REVISION_MANUAL" -> emailNotificationService.sendManualReviewNotification(
                         resultado.getEmail(),
                         resultado.getNombreCompleto(),
                         resultado.getSolicitudId()

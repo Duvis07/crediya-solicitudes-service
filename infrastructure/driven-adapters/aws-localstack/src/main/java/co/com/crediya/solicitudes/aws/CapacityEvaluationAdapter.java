@@ -7,6 +7,7 @@ import co.com.crediya.solicitudes.model.application.gateways.ApplicationReposito
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
+import co.com.crediya.solicitudes.webclient.AuthServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,28 +29,53 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
     private final ApplicationRepository applicationRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final StateRepository stateRepository;
+    private final AuthServiceClient authServiceClient;
 
     @Override
     public Mono<String> sendForAutomaticEvaluation(Application application) {
         log.info("Preparing application {} for automatic evaluation", application.getApplicationId());
         
-        return Mono.fromCallable(() -> SolicitudCapacidadDto.builder()
-                .solicitudId(String.valueOf(application.getApplicationId()))
-                .documentoIdentidad(application.getDocumentId())
-                .monto(application.getAmount())
-                .plazoMeses(application.getTerm())
-                .tasaInteresAnual(DEFAULT_INTEREST_RATE)
-                .salarioBase(DEFAULT_BASE_SALARY)
-                .tipoPrestamo(DEFAULT_LOAN_TYPE)
-                .email(application.getEmail())
-                .nombreCompleto("Cliente") // Default name
-                .timestamp(System.currentTimeMillis())
-                .build())
-        .flatMap(sqsService::sendApplicationForEvaluation)
-        .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
-            application.getApplicationId(), messageId))
-        .doOnError(error -> log.error("Error sending application {} to SQS: {}", 
-            application.getApplicationId(), error.getMessage()));
+        // Get user info from authentication service to obtain the real customer name
+        return authServiceClient.getUserByDocumentId(application.getDocumentId())
+                .map(userResponse -> {
+                    // Build full name from firstName and lastName
+                    String fullName = buildFullName(userResponse.getFirstName(), userResponse.getLastName());
+                    
+                    return SolicitudCapacidadDto.builder()
+                            .solicitudId(String.valueOf(application.getApplicationId()))
+                            .documentoIdentidad(application.getDocumentId())
+                            .monto(application.getAmount())
+                            .plazoMeses(application.getTerm())
+                            .tasaInteresAnual(DEFAULT_INTEREST_RATE)
+                            .salarioBase(DEFAULT_BASE_SALARY)
+                            .tipoPrestamo(DEFAULT_LOAN_TYPE)
+                            .email(application.getEmail())
+                            .nombreCompleto(fullName)
+                            .timestamp(System.currentTimeMillis())
+                            .build();
+                })
+                .onErrorResume(error -> {
+                    log.warn("Could not retrieve user info for documentId {}, using default name: {}", 
+                            application.getDocumentId(), error.getMessage());
+                    // Fallback to default name if auth service fails
+                    return Mono.just(SolicitudCapacidadDto.builder()
+                            .solicitudId(String.valueOf(application.getApplicationId()))
+                            .documentoIdentidad(application.getDocumentId())
+                            .monto(application.getAmount())
+                            .plazoMeses(application.getTerm())
+                            .tasaInteresAnual(DEFAULT_INTEREST_RATE)
+                            .salarioBase(DEFAULT_BASE_SALARY)
+                            .tipoPrestamo(DEFAULT_LOAN_TYPE)
+                            .email(application.getEmail())
+                            .nombreCompleto("Cliente")
+                            .timestamp(System.currentTimeMillis())
+                            .build());
+                })
+                .flatMap(sqsService::sendApplicationForEvaluation)
+                .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
+                    application.getApplicationId(), messageId))
+                .doOnError(error -> log.error("Error sending application {} to SQS: {}", 
+                    application.getApplicationId(), error.getMessage()));
     }
 
     @Override
@@ -102,6 +128,22 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
             .doOnError(error -> log.error("Error checking automatic validation: {}", error.getMessage()));
     }
 
+
+    /**
+     * Builds full name from first and last name with null safety
+     */
+    private String buildFullName(String firstName, String lastName) {
+        if (firstName == null && lastName == null) {
+            return "Cliente";
+        }
+        if (firstName == null) {
+            return lastName.trim();
+        }
+        if (lastName == null) {
+            return firstName.trim();
+        }
+        return (firstName.trim() + " " + lastName.trim()).trim();
+    }
 
     private String mapDecisionToState(String decision) {
         return switch (decision) {

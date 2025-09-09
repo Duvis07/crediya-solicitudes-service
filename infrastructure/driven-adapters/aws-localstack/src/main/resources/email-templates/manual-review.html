@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud en Revisión - CrediYa Financial</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .header .subtitle {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .status-notice {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fffbeb;
+            border-radius: 8px;
+            border: 2px solid #fde68a;
+        }
+        .status-notice .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .status-notice h2 {
+            color: #d97706;
+            font-size: 24px;
+            margin: 0 0 10px 0;
+        }
+        .status-notice p {
+            color: #92400e;
+            font-size: 16px;
+            margin: 0;
+        }
+        .details-box {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        .details-box h3 {
+            color: #1e40af;
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        .detail-value {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .status-review {
+            color: #d97706;
+            font-weight: bold;
+        }
+        .timeline {
+            color: #059669;
+            font-weight: bold;
+        }
+        .process-steps {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .process-steps h3 {
+            color: #0c4a6e;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .process-steps h3::before {
+            content: "📋";
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        .process-steps ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .process-steps li {
+            color: #0c4a6e;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .contact-info {
+            background-color: #ecfdf5;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .contact-info h3 {
+            color: #065f46;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .contact-info h3::before {
+            content: "📞";
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        .contact-item {
+            margin: 10px 0;
+            color: #047857;
+            font-weight: 500;
+        }
+        .contact-item strong {
+            color: #064e3b;
+        }
+        .footer {
+            background-color: #1f2937;
+            color: #d1d5db;
+            padding: 30px;
+            text-align: center;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer .signature {
+            font-weight: 600;
+            color: #f3f4f6;
+            margin-top: 20px;
+        }
+        .reassurance {
+            background-color: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .reassurance p {
+            color: #15803d;
+            margin: 0;
+            font-weight: 500;
+        }
+        .progress-bar {
+            background-color: #e5e7eb;
+            border-radius: 10px;
+            height: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            height: 100%;
+            width: 60%;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 CREDIYA FINANCIAL</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Su Socio Financiero de Confianza</p>
+        </div>
+        
+        <div class="content">
+            <div class="review-banner">
+                <h2 style="margin: 0; font-size: 22px;">🔍 EN REVISIÓN</h2>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Su solicitud está siendo evaluada cuidadosamente</p>
+            </div>
+            
+            <p style="font-size: 16px; margin-bottom: 20px;">Estimado/a {{nombreCompleto}},</p>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">Gracias por su solicitud de préstamo con CrediYa Financial Services. Su solicitud requiere una revisión adicional por parte de nuestro equipo de suscripción para asegurar que le proporcionemos las mejores condiciones de préstamo posibles.</p>
+            
+            <div class="details-box">
+                <h3>Estado de la Solicitud</h3>
+                <div class="detail-row">
+                    <span class="detail-label">ID de Solicitud:</span>
+                    <span class="detail-value">{{solicitudId}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Estado:</span>
+                    <span class="detail-value status-review">EN REVISIÓN MANUAL</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Tiempo Estimado:</span>
+                    <span class="detail-value">48 horas hábiles</span>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <h3>📊 Progreso de Revisión</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p class="progress-text">Procesando... Nuestros especialistas están revisando su solicitud</p>
+            </div>
+            
+            <div class="next-steps">
+                <h3>📋 Qué Sucede Ahora</h3>
+                <ul>
+                    <li>Nuestros especialistas en suscripción revisarán su solicitud</li>
+                    <li>Se puede solicitar documentación adicional si es necesario</li>
+                    <li>Será contactado dentro de 48 horas hábiles</li>
+                    <li>La decisión final será comunicada por email y teléfono</li>
+                </ul>
+            </div>
+            
+            <div class="reassurance">
+                <p>🤝 Agradecemos su paciencia durante este proceso y esperamos proporcionarle una decisión integral de préstamo pronto.</p>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <h3>📞 Información de Contacto</h3>
+            <p><strong>Servicio al Cliente:</strong> +1 (555) 123-4567</p>
+            <p><strong>Email:</strong> soporte@crediya.com</p>
+            <p><strong>Sitio Web:</strong> www.crediya.com</p>
+            <p><strong>Equipo de Suscripción:</strong> suscripcion@crediya.com</p>
+        </div>
+
+        <div class="footer">
+            <p>Gracias por elegir CrediYa Financial Services.</p>
+            <p class="signature">Atentamente,<br>El Equipo de Suscripción de CrediYa</p>
+            <hr>
+            <p><small>Este es un mensaje automático de CrediYa Financial Services</small></p>
+        </div>
+    </div>
+</body>
+</html>
