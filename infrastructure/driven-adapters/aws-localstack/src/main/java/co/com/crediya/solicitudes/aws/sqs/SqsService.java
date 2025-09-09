@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
@@ -39,15 +40,15 @@ public class SqsService {
                                 .queueUrl(QUEUE_URL)
                                 .messageBody(messageBody)
                                 .messageAttributes(Map.of(
-                                        "solicitudId", software.amazon.awssdk.services.sqs.model.MessageAttributeValue.builder()
+                                        "solicitudId", MessageAttributeValue.builder()
                                                 .stringValue(solicitudDto.getSolicitudId())
                                                 .dataType(DATA_TYPE_STRING)
                                                 .build(),
-                                        "documentoIdentidad", software.amazon.awssdk.services.sqs.model.MessageAttributeValue.builder()
+                                        "documentoIdentidad", MessageAttributeValue.builder()
                                                 .stringValue(solicitudDto.getDocumentoIdentidad())
                                                 .dataType(DATA_TYPE_STRING)
                                                 .build(),
-                                        "tipoValidacion", software.amazon.awssdk.services.sqs.model.MessageAttributeValue.builder()
+                                        "tipoValidacion", MessageAttributeValue.builder()
                                                 .stringValue("AUTOMATICA")
                                                 .dataType(DATA_TYPE_STRING)
                                                 .build()

@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.aws.sqs;
 
 import co.com.crediya.solicitudes.aws.dto.ResultadoEvaluacionDto;
+import co.com.crediya.solicitudes.model.exceptions.MessageProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import co.com.crediya.solicitudes.aws.email.EmailNotificationService;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
@@ -37,18 +38,18 @@ public class SqsMessageConsumer {
     @EventListener(ApplicationReadyEvent.class)
     public void startConsumer() {
         if (isRunning.compareAndSet(false, true)) {
-            log.info("Iniciando consumidor SQS para resultados de evaluación de capacidad");
+            log.info("Starting SQS consumer for capacity evaluation results");
             
             Mono.fromRunnable(this::consumeMessages)
                 .subscribeOn(Schedulers.boundedElastic())
                 .repeat()
-                .delayElements(Duration.ofSeconds(5)) // Poll cada 5 segundos
+                .delayElements(Duration.ofSeconds(5)) // Poll every 5 seconds
                 .doOnError(error -> {
-                    log.error("Error en consumidor SQS: {}", error.getMessage());
+                    log.error("Error in SQS consumer: {}", error.getMessage());
                     isRunning.set(false);
                 })
                 .onErrorResume(error -> {
-                    log.warn("Reintentando consumidor SQS después de error");
+                    log.warn("Retrying SQS consumer after error");
                     return Mono.delay(Duration.ofSeconds(10))
                         .then(Mono.fromRunnable(() -> isRunning.set(false)));
                 })
@@ -61,7 +62,7 @@ public class SqsMessageConsumer {
             ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
                 .queueUrl(RESULTS_QUEUE_URL)
                 .maxNumberOfMessages(10)
-                .waitTimeSeconds(5) // Reducir long polling para evitar timeouts
+                .waitTimeSeconds(5) // Reduce long polling to avoid timeouts
                 .messageAttributeNames("All")
                 .build();
 
@@ -69,54 +70,54 @@ public class SqsMessageConsumer {
             List<Message> messages = response.messages();
 
             if (!messages.isEmpty()) {
-                log.info("Recibidos {} mensajes de resultados de evaluación", messages.size());
+                log.info("Received {} evaluation result messages", messages.size());
                 
                 for (Message message : messages) {
                     processMessage(message)
                         .doOnSuccess(v -> deleteMessage(message))
-                        .doOnError(error -> log.error("Error procesando mensaje {}: {}", 
+                        .doOnError(error -> log.error("Error processing message {}: {}", 
                             message.messageId(), error.getMessage()))
-                        .onErrorResume(error -> Mono.empty()) // Continuar con otros mensajes
-                        .block(); // Procesar secuencialmente
+                        .onErrorResume(error -> Mono.empty()) // Continue with other messages
+                        .block(); // Process sequentially
                 }
             }
 
         } catch (Exception e) {
-            log.error("Error consumiendo mensajes SQS: {}", e.getMessage());
-            throw new RuntimeException("Error en consumidor SQS", e);
+            log.error("Error consuming SQS messages: {}", e.getMessage());
+            throw new MessageProcessingException("Error in SQS consumer", e);
         }
     }
 
     private Mono<Void> processMessage(Message message) {
         return Mono.fromCallable(() -> {
             try {
-                log.info("Procesando mensaje de resultado: {}", message.messageId());
+                log.info("Processing result message: {}", message.messageId());
                 
                 String messageBody = message.body();
-                log.info("Mensaje SQS crudo recibido: {}", messageBody);
+                log.info("Raw SQS message received: {}", messageBody);
                 
-                // Decodificar JSON que viene como string escapado
+                // Decode JSON that comes as escaped string
                 try {
-                    // Si el mensaje está envuelto en comillas, es un JSON escapado
+                    // If message is wrapped in quotes, it's escaped JSON
                     if (messageBody.startsWith("\"") && messageBody.endsWith("\"")) {
-                        // Usar ObjectMapper para decodificar el string JSON escapado
+                        // Use ObjectMapper to decode the escaped JSON string
                         messageBody = objectMapper.readValue(messageBody, String.class);
-                        log.info("JSON decodificado: {}", messageBody);
+                        log.info("Decoded JSON: {}", messageBody);
                     }
                 } catch (Exception e) {
-                    log.warn("No se pudo decodificar como JSON escapado, usando mensaje original: {}", e.getMessage());
+                    log.warn("Could not decode as escaped JSON, using original message: {}", e.getMessage());
                 }
                 
                 ResultadoEvaluacionDto resultado = objectMapper.readValue(messageBody, ResultadoEvaluacionDto.class);
                 
-                log.info("Resultado recibido para solicitud {}: {}", 
+                log.info("Result received for application {}: {}", 
                     resultado.getSolicitudId(), resultado.getDecision());
                 
                 return resultado;
                 
             } catch (Exception e) {
-                log.error("Error parseando mensaje: {}", e.getMessage());
-                throw new RuntimeException("Error parseando resultado de evaluación", e);
+                log.error("Error parsing message: {}", e.getMessage());
+                throw new MessageProcessingException("Error parsing evaluation result", e);
             }
         })
         .flatMap(this::processEvaluationResult)
@@ -132,7 +133,7 @@ public class SqsMessageConsumer {
                 resultado.getCuotaCalculada()
             )
             .flatMap(application -> {
-                // Enviar notificación por email según la decisión
+                // Send email notification based on decision
                 return switch (resultado.getDecision()) {
                     case "APROBADO" -> emailNotificationService.enviarNotificacionPlanPagos(
                         resultado.getEmail(),
@@ -154,14 +155,14 @@ public class SqsMessageConsumer {
                         resultado.getSolicitudId()
                     );
                     default -> {
-                        log.warn("Decisión desconocida: {}", resultado.getDecision());
+                        log.warn("Unknown decision: {}", resultado.getDecision());
                         yield Mono.empty();
                     }
                 };
             })
-            .doOnSuccess(v -> log.info("Resultado procesado exitosamente para solicitud: {}", 
+            .doOnSuccess(v -> log.info("Result processed successfully for application: {}", 
                 resultado.getSolicitudId()))
-            .doOnError(error -> log.error("Error procesando resultado para solicitud {}: {}", 
+            .doOnError(error -> log.error("Error processing result for application {}: {}", 
                 resultado.getSolicitudId(), error.getMessage()));
     }
 
@@ -173,10 +174,10 @@ public class SqsMessageConsumer {
                 .build();
 
             sqsClient.deleteMessage(deleteRequest);
-            log.debug("Mensaje {} eliminado de la cola", message.messageId());
+            log.debug("Message {} deleted from queue", message.messageId());
             
         } catch (Exception e) {
-            log.error("Error eliminando mensaje {}: {}", message.messageId(), e.getMessage());
+            log.error("Error deleting message {}: {}", message.messageId(), e.getMessage());
         }
     }
 
