@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.usecase.application;
 
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
+import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import co.com.crediya.solicitudes.model.loantype.LoanType;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
@@ -13,7 +14,7 @@ import co.com.crediya.solicitudes.model.client.gateways.ClientValidationReposito
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import co.com.crediya.solicitudes.model.common.PageRequest;
 import co.com.crediya.solicitudes.model.common.PageResponse;
-import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
+
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
@@ -52,23 +53,23 @@ public class ApplicationUseCase {
                 .flatMap(applicationRepository::save)
                 .flatMap(savedApp -> {
                     log.info("Application created successfully with ID: " + savedApp.getApplicationId());
-                    
-                    // Verificar si debe procesarse automáticamente
-                    return capacityEvaluationRepository.esValidacionAutomaticaHabilitada(savedApp.getLoanTypeId())
-                            .flatMap(validacionAutomatica -> {
-                                if (Boolean.TRUE.equals(validacionAutomatica)) {
-                                    log.info("Enviando solicitud " + savedApp.getApplicationId() + " para evaluación automática");
-                                    return capacityEvaluationRepository.enviarParaEvaluacionAutomatica(savedApp)
-                                            .doOnSuccess(messageId -> log.info("Solicitud " + savedApp.getApplicationId() + 
-                                                " encolada para evaluación automática. MessageId: " + messageId))
-                                            .doOnError(error -> log.severe("Error encolando solicitud para evaluación automática: " + error.getMessage()))
+
+                    // Check if it should be processed automatically
+                    return capacityEvaluationRepository.isAutomaticValidationEnabled(savedApp.getLoanTypeId())
+                            .flatMap(automaticValidation -> {
+                                if (Boolean.TRUE.equals(automaticValidation)) {
+                                    log.info("Sending application " + savedApp.getApplicationId() + " for automatic evaluation");
+                                    return capacityEvaluationRepository.sendForAutomaticEvaluation(savedApp)
+                                            .doOnSuccess(messageId -> log.info("Application " + savedApp.getApplicationId() +
+                                                    " queued for automatic evaluation. MessageId: " + messageId))
+                                            .doOnError(error -> log.severe("Error queuing application for automatic evaluation: " + error.getMessage()))
                                             .onErrorResume(error -> {
-                                                log.severe("Falló el encolamiento automático, continuando con flujo manual para solicitud: " + savedApp.getApplicationId());
+                                                log.severe("Automatic queuing failed, continuing with manual flow for application: " + savedApp.getApplicationId());
                                                 return Mono.empty();
                                             })
                                             .then(Mono.just(savedApp));
                                 } else {
-                                    log.info("Validación automática deshabilitada para tipo de préstamo: " + savedApp.getLoanTypeId());
+                                    log.info("Automatic validation disabled for loan type: " + savedApp.getLoanTypeId());
                                     return Mono.just(savedApp);
                                 }
                             });
@@ -84,13 +85,13 @@ public class ApplicationUseCase {
                 .flatMap(userEmail -> {
                     // Validate ownership - user can only create applications for themselves
                     if (!userEmail.equals(application.getEmail())) {
-                        log.severe("OWNERSHIP DENIED: User with documentId " + application.getDocumentId() + 
+                        log.severe("OWNERSHIP DENIED: User with documentId " + application.getDocumentId() +
                                 " attempted to use incorrect email");
                         return Mono.error(new ClientNotFoundException(
-                            "Access denied: You can only create loan applications for yourself. " +
-                            "The email provided does not match the registered user."));
+                                "Access denied: You can only create loan applications for yourself. " +
+                                        "The email provided does not match the registered user."));
                     }
-                    
+
                     log.info("Ownership validation passed for documentId: " + application.getDocumentId() +
                             " with email: " + userEmail);
                     return Mono.<Void>empty();
@@ -116,17 +117,17 @@ public class ApplicationUseCase {
 
     public Mono<PageResponse<Application>> getApplicationsForManualReviewPaginated(PageRequest pageRequest) {
         log.info("Getting paginated applications for manual review - page: " + pageRequest.page() + ", size: " + pageRequest.size());
-        
+
         return getStateIdsForManualReview()
                 .flatMap(stateIds -> {
                     log.info("Found state IDs for manual review: " + stateIds);
-                    
+
                     Mono<List<Application>> contentMono = applicationRepository
                             .findByStateInWithPagination(stateIds, pageRequest)
                             .collectList();
-                    
+
                     Mono<Long> totalMono = applicationRepository.countByStateIn(stateIds);
-                    
+
                     return Mono.zip(contentMono, totalMono)
                             .map(tuple -> {
                                 List<Application> content = tuple.getT1();
@@ -141,11 +142,11 @@ public class ApplicationUseCase {
 
     private Mono<List<Long>> getStateIdsForManualReview() {
         List<String> targetStates = Arrays.asList(
-            ApplicationStatus.PENDING_REVIEW.getDescription(),
-            ApplicationStatus.REJECTED.getDescription(),
-            ApplicationStatus.MANUAL_REVIEW.getDescription()
+                ApplicationStatus.PENDING_REVIEW.getDescription(),
+                ApplicationStatus.REJECTED.getDescription(),
+                ApplicationStatus.MANUAL_REVIEW.getDescription()
         );
-        
+
         return Flux.fromIterable(targetStates)
                 .flatMap(stateName -> stateRepository.findByName(stateName)
                         .map(State::getStateId)
@@ -157,16 +158,5 @@ public class ApplicationUseCase {
                 .collectList()
                 .filter(list -> !list.isEmpty())
                 .switchIfEmpty(Mono.error(new IllegalStateException("No valid states found for manual review")));
-    }
-
-    public Flux<Application> getAllApplications() {
-        log.info("Getting all applications");
-        return getStateIdsForManualReview()
-                .flatMapMany(stateIds -> {
-                    log.info("Found state IDs for manual review: " + stateIds);
-                    return applicationRepository.findByStateInWithPagination(stateIds, PageRequest.of(0, Integer.MAX_VALUE, "createdAt", "desc"));
-                })
-                .doOnComplete(() -> log.info("Successfully retrieved all applications"))
-                .doOnError(error -> log.severe("Error retrieving all applications: " + error.getMessage()));
     }
 }

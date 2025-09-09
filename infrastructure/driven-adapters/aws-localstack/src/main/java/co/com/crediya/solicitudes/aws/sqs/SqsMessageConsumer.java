@@ -123,7 +123,7 @@ public class SqsMessageConsumer {
     }
 
     private Mono<Void> processEvaluationResult(ResultadoEvaluacionDto resultado) {
-        return capacityEvaluationRepository.procesarResultadoEvaluacion(
+        return capacityEvaluationRepository.processEvaluationResult(
                 resultado.getSolicitudId(),
                 resultado.getDecision(),
                 resultado.getMotivo(),

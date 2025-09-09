@@ -9,7 +9,6 @@ import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -21,98 +20,94 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
 
+    private static final BigDecimal DEFAULT_INTEREST_RATE = BigDecimal.valueOf(12.0);
+    private static final BigDecimal DEFAULT_BASE_SALARY = BigDecimal.valueOf(2000000);
+    private static final String DEFAULT_LOAN_TYPE = "PERSONAL";
+
     private final SqsService sqsService;
     private final ApplicationRepository applicationRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final StateRepository stateRepository;
 
     @Override
-    public Mono<String> enviarParaEvaluacionAutomatica(Application application) {
-        log.info("Preparando solicitud {} para evaluación automática", application.getApplicationId());
+    public Mono<String> sendForAutomaticEvaluation(Application application) {
+        log.info("Preparing application {} for automatic evaluation", application.getApplicationId());
         
-        return Mono.fromCallable(() -> {
-            SolicitudCapacidadDto solicitudDto = SolicitudCapacidadDto.builder()
+        return Mono.fromCallable(() -> SolicitudCapacidadDto.builder()
                 .solicitudId(String.valueOf(application.getApplicationId()))
                 .documentoIdentidad(application.getDocumentId())
                 .monto(application.getAmount())
                 .plazoMeses(application.getTerm())
-                .tasaInteresAnual(BigDecimal.valueOf(12.0)) // Tasa por defecto
-                .salarioBase(BigDecimal.valueOf(2000000)) // Salario por defecto
-                .tipoPrestamo(obtenerTipoPrestamo(application.getLoanTypeId()))
+                .tasaInteresAnual(DEFAULT_INTEREST_RATE)
+                .salarioBase(DEFAULT_BASE_SALARY)
+                .tipoPrestamo(DEFAULT_LOAN_TYPE)
                 .email(application.getEmail())
-                .nombreCompleto("Cliente") // Nombre por defecto
+                .nombreCompleto("Cliente") // Default name
                 .timestamp(System.currentTimeMillis())
-                .build();
-            
-            return solicitudDto;
-        })
+                .build())
         .flatMap(sqsService::enviarSolicitudParaEvaluacion)
-        .doOnSuccess(messageId -> log.info("Solicitud {} enviada a SQS con messageId: {}", 
+        .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
             application.getApplicationId(), messageId))
-        .doOnError(error -> log.error("Error enviando solicitud {} a SQS: {}", 
+        .doOnError(error -> log.error("Error sending application {} to SQS: {}", 
             application.getApplicationId(), error.getMessage()));
     }
 
     @Override
-    public Mono<Application> procesarResultadoEvaluacion(
-            String solicitudId, 
+    public Mono<Application> processEvaluationResult(
+            String applicationId, 
             String decision, 
-            String motivo, 
-            BigDecimal capacidadDisponible, 
-            BigDecimal cuotaCalculada) {
+            String reason, 
+            BigDecimal availableCapacity, 
+            BigDecimal calculatedInstallment) {
         
-        log.info("Procesando resultado de evaluación para solicitud {}: {}", solicitudId, decision);
+        log.info("Processing evaluation result for application {}: {}", applicationId, decision);
         
-        return applicationRepository.findById(Long.valueOf(solicitudId))
+        return applicationRepository.findById(Long.valueOf(applicationId))
             .flatMap(application -> {
-                // Actualizar el estado según la decisión
-                String nuevoEstado = mapearDecisionAEstado(decision);
+                // Update state based on decision
+                String newState = mapDecisionToState(decision);
                 
-                return stateRepository.findByName(nuevoEstado)
+                return stateRepository.findByName(newState)
                     .flatMap(state -> {
-                        Application applicationActualizada = application.toBuilder()
+                        Application updatedApplication = application.toBuilder()
                             .stateId(state.getStateId())
                             .updatedAt(LocalDateTime.now())
                             .build();
                         
-                        return applicationRepository.save(applicationActualizada);
+                        return applicationRepository.save(updatedApplication);
                     })
-                    .doOnSuccess(app -> log.info("Solicitud {} actualizada con decisión: {} (Estado: {})", 
-                            solicitudId, decision, nuevoEstado))
-                    .doOnError(error -> log.error("Error actualizando solicitud {}: {}", 
-                            solicitudId, error.getMessage()));
+                    .doOnSuccess(app -> log.info("Application {} updated with decision: {} (State: {})", 
+                            applicationId, decision, newState))
+                    .doOnError(error -> log.error("Error updating application {}: {}", 
+                            applicationId, error.getMessage()));
             })
-            .switchIfEmpty(Mono.error(new IllegalArgumentException("Solicitud no encontrada: " + solicitudId)));
+            .switchIfEmpty(Mono.error(new IllegalArgumentException("Application not found: " + applicationId)));
     }
 
     @Override
-    public Mono<Boolean> esValidacionAutomaticaHabilitada(Long loanTypeId) {
-        // Por ahora, habilitamos validación automática para todos los tipos de préstamo
-        // En el futuro esto podría venir de configuración en base de datos
-        log.info("Verificando validación automática para tipo de préstamo: {}", loanTypeId);
+    public Mono<Boolean> isAutomaticValidationEnabled(Long loanTypeId) {
+        // For now, we enable automatic validation for all loan types
+        // In the future this could come from database configuration
+        log.info("Checking automatic validation for loan type: {}", loanTypeId);
         
         return loanTypeRepository.findById(loanTypeId)
             .map(loanType -> {
-                // Lógica de negocio: validación automática habilitada para ciertos tipos
-                boolean habilitada = true; // Por defecto habilitada
-                log.info("Validación automática {} para tipo de préstamo: {}", 
-                    habilitada ? "habilitada" : "deshabilitada", loanType.getName());
-                return habilitada;
+                // Business logic: automatic validation enabled for certain types
+                boolean enabled = true; // Enabled by default
+                log.info("Automatic validation {} for loan type: {}", 
+                    enabled ? "enabled" : "disabled", loanType.getName());
+                return enabled;
             })
             .defaultIfEmpty(false)
-            .doOnError(error -> log.error("Error verificando validación automática: {}", error.getMessage()));
+            .doOnError(error -> log.error("Error checking automatic validation: {}", error.getMessage()));
     }
 
-    private String obtenerTipoPrestamo(Long loanTypeId) {
-        // Mapeo simple por ahora, en el futuro podría ser más sofisticado
-        return "PERSONAL"; // Valor por defecto
-    }
 
-    private String mapearDecisionAEstado(String decision) {
+    private String mapDecisionToState(String decision) {
         return switch (decision) {
-            case "APROBADO" -> "Aprobada";
-            case "RECHAZADO" -> "Rechazada";
-            case "REVISION_MANUAL" -> "Revision manual";
+            case "APPROVED" -> "Aprobada";
+            case "REJECTED" -> "Rechazada";
+            case "MANUAL_REVIEW" -> "Revision manual";
             default -> "Pendiente de revision";
         };
     }
