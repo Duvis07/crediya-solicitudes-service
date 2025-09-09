@@ -1,4 +1,4 @@
-package co.com.crediya.solicitudes.aws.sqs;
+package co.com.crediya.solicitudes.aws.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

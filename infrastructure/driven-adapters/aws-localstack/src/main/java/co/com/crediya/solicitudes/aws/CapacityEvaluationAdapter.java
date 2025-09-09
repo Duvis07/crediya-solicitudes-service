@@ -1,7 +1,7 @@
 package co.com.crediya.solicitudes.aws;
 
 import co.com.crediya.solicitudes.aws.sqs.SqsService;
-import co.com.crediya.solicitudes.aws.sqs.SolicitudCapacidadDto;
+import co.com.crediya.solicitudes.aws.dto.SolicitudCapacidadDto;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;

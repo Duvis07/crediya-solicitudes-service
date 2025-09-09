@@ -1,5 +1,6 @@
 package co.com.crediya.solicitudes.aws.sqs;
 
+import co.com.crediya.solicitudes.aws.dto.ResultadoEvaluacionDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import co.com.crediya.solicitudes.aws.email.EmailNotificationService;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
@@ -179,8 +180,4 @@ public class SqsMessageConsumer {
         }
     }
 
-    public void stopConsumer() {
-        log.info("Deteniendo consumidor SQS");
-        isRunning.set(false);
-    }
 }
