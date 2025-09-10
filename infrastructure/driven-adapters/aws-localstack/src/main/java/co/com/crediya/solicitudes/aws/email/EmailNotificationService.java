@@ -1,13 +1,8 @@
 package co.com.crediya.solicitudes.aws.email;
 
-import co.com.crediya.solicitudes.aws.dto.ManualNotificationDto;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.exceptions.EmailNotificationException;
 import co.com.crediya.solicitudes.model.exceptions.EmailTemplateException;
-import co.com.crediya.solicitudes.model.exceptions.SqsOperationException;
-import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,37 +13,23 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-import software.amazon.awssdk.services.sqs.model.SqsException;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class EmailNotificationService implements ManualNotificationRepository {
+public class EmailNotificationService extends BaseEmailService {
 
-    private final JavaMailSender mailSender;
-    private final SqsClient sqsClient;
-    private final ObjectMapper objectMapper;
+    public EmailNotificationService(JavaMailSender mailSender) {
+        super(mailSender);
+    }
 
-    @Value("${spring.mail.from:crediya@localhost}")
-    private String fromEmail;
-
-    @Value("${aws.sqs.notifications-queue-url:http://localhost:4566/000000000000/notificaciones-manuales-queue}")
-    private String notificationsQueueUrl;
-
-    private static final String UTF8_ENCODING = "UTF-8";
-    private static final String NOTIFICATION_TYPE = "MANUAL_DECISION";
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final String TD_CLOSE = "</td>";
+    private static final String TD_MONEY = "<td>$";
 
     /**
      * Sends approved payment plan notification via email using HTML template
@@ -68,15 +49,7 @@ public class EmailNotificationService implements ManualNotificationRepository {
                         String htmlContent = loadHtmlTemplate("email-templates/loan-approval.html");
                         htmlContent = processApprovalTemplate(htmlContent, nombreCompleto, solicitudId, montoAprobado, cuotaMensual, planPagos);
 
-                        MimeMessage mimeMessage = mailSender.createMimeMessage();
-                        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF8_ENCODING);
-
-                        helper.setFrom(fromEmail);
-                        helper.setTo(email);
-                        helper.setSubject("Solicitud en Revisión - CrediYa Financial");
-                        helper.setText(htmlContent, true);
-
-                        mailSender.send(mimeMessage);
+                        sendEmailSync(email, "¡Felicitaciones! Préstamo Aprobado - CREDIYA", htmlContent);
 
                         log.info("Payment plan notification sent successfully to: {}", email);
 
@@ -105,15 +78,7 @@ public class EmailNotificationService implements ManualNotificationRepository {
                 String htmlContent = loadHtmlTemplate("email-templates/loan-rejection.html");
                 htmlContent = processRejectionTemplate(htmlContent, nombreCompleto, solicitudId, motivo);
 
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF8_ENCODING);
-
-                helper.setFrom(fromEmail);
-                helper.setTo(email);
-                helper.setSubject("CrediYa - Loan Application Decision - Application " + solicitudId);
-                helper.setText(htmlContent, true);
-
-                mailSender.send(mimeMessage);
+                sendEmailSync(email, "Actualización de su Solicitud - CREDIYA", htmlContent);
 
                 log.info("Rejection notification sent successfully to: {}", email);
 
@@ -139,15 +104,7 @@ public class EmailNotificationService implements ManualNotificationRepository {
                 String htmlContent = loadHtmlTemplate("email-templates/manual-review.html");
                 htmlContent = processManualReviewTemplate(htmlContent, nombreCompleto, solicitudId);
 
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF8_ENCODING);
-
-                helper.setFrom(fromEmail);
-                helper.setTo(email);
-                helper.setSubject("CrediYa - Application Under Review - Application " + solicitudId);
-                helper.setText(htmlContent, true);
-
-                mailSender.send(mimeMessage);
+                sendEmailSync(email, "Solicitud en Revisión Manual - CREDIYA", htmlContent);
 
                 log.info("Manual review notification sent successfully to: {}", email);
 
@@ -158,18 +115,6 @@ public class EmailNotificationService implements ManualNotificationRepository {
         });
     }
 
-    /**
-     * Loads HTML template from classpath resources
-     */
-    private String loadHtmlTemplate(String templatePath) {
-        try {
-            ClassPathResource resource = new ClassPathResource(templatePath);
-            return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.error("Error loading HTML template: {}", templatePath, e);
-            throw new EmailTemplateException("Failed to load email template", e);
-        }
-    }
 
     /**
      * Processes approval email template with dynamic content
@@ -178,8 +123,8 @@ public class EmailNotificationService implements ManualNotificationRepository {
                                            BigDecimal montoAprobado, BigDecimal cuotaMensual,
                                            List<Map<String, Object>> planPagos) {
         // Replace basic placeholders
-        htmlContent = htmlContent.replace("{{nombreCompleto}}", nombreCompleto != null ? nombreCompleto : "Cliente");
-        htmlContent = htmlContent.replace("{{solicitudId}}", solicitudId != null ? solicitudId : "N/A");
+        htmlContent = htmlContent.replace(PLACEHOLDER_NOMBRE, nombreCompleto != null ? nombreCompleto : DEFAULT_CUSTOMER);
+        htmlContent = htmlContent.replace(PLACEHOLDER_SOLICITUD, solicitudId != null ? solicitudId : "N/A");
         htmlContent = htmlContent.replace("{{montoAprobado}}", String.format("%.2f", montoAprobado));
         htmlContent = htmlContent.replace("{{cuotaMensual}}", String.format("%.2f", cuotaMensual));
 
@@ -188,11 +133,11 @@ public class EmailNotificationService implements ManualNotificationRepository {
             StringBuilder scheduleRows = new StringBuilder();
             for (Map<String, Object> cuota : planPagos) {
                 scheduleRows.append("<tr>")
-                        .append("<td>").append(cuota.get("cuota")).append("</td>")
-                        .append("<td>").append(cuota.get("fecha_vencimiento")).append("</td>")
-                        .append("<td>$").append(String.format("%.2f", ((Number) cuota.get("capital")).doubleValue())).append("</td>")
-                        .append("<td>$").append(String.format("%.2f", ((Number) cuota.get("interes")).doubleValue())).append("</td>")
-                        .append("<td>$").append(String.format("%.2f", ((Number) cuota.get("saldo")).doubleValue())).append("</td>")
+                        .append("<td>").append(cuota.get("cuota")).append(TD_CLOSE)
+                        .append("<td>").append(cuota.get("fecha_vencimiento")).append(TD_CLOSE)
+                        .append(TD_MONEY).append(String.format("%.2f", ((Number) cuota.get("capital")).doubleValue())).append(TD_CLOSE)
+                        .append(TD_MONEY).append(String.format("%.2f", ((Number) cuota.get("interes")).doubleValue())).append(TD_CLOSE)
+                        .append(TD_MONEY).append(String.format("%.2f", ((Number) cuota.get("saldo")).doubleValue())).append(TD_CLOSE)
                         .append("</tr>");
             }
             // Replace the table body content with payment rows
@@ -219,8 +164,8 @@ public class EmailNotificationService implements ManualNotificationRepository {
      * Processes rejection email template with dynamic content
      */
     private String processRejectionTemplate(String htmlContent, String nombreCompleto, String solicitudId, String motivo) {
-        htmlContent = htmlContent.replace("{{nombreCompleto}}", nombreCompleto != null ? nombreCompleto : "Cliente");
-        htmlContent = htmlContent.replace("{{solicitudId}}", solicitudId != null ? solicitudId : "N/A");
+        htmlContent = htmlContent.replace(PLACEHOLDER_NOMBRE, nombreCompleto != null ? nombreCompleto : DEFAULT_CUSTOMER);
+        htmlContent = htmlContent.replace(PLACEHOLDER_SOLICITUD, solicitudId != null ? solicitudId : "N/A");
         htmlContent = htmlContent.replace("{{motivo}}", motivo != null ? motivo : "Criterios de evaluación crediticia no cumplidos");
         // Clean up any remaining placeholders
         htmlContent = htmlContent.replaceAll("\\{\\{[^}]*\\}\\}", "");
@@ -231,82 +176,12 @@ public class EmailNotificationService implements ManualNotificationRepository {
      * Processes manual review email template with dynamic content
      */
     private String processManualReviewTemplate(String htmlContent, String nombreCompleto, String solicitudId) {
-        htmlContent = htmlContent.replace("{{nombreCompleto}}", nombreCompleto != null ? nombreCompleto : "Cliente");
-        htmlContent = htmlContent.replace("{{solicitudId}}", solicitudId != null ? solicitudId : "N/A");
+        htmlContent = htmlContent.replace(PLACEHOLDER_NOMBRE, nombreCompleto != null ? nombreCompleto : DEFAULT_CUSTOMER);
+        htmlContent = htmlContent.replace(PLACEHOLDER_SOLICITUD, solicitudId != null ? solicitudId : "N/A");
         // Clean up any remaining placeholders
-        htmlContent = htmlContent.replaceAll("\\{\\{[^}]*}}", "");
+        htmlContent = htmlContent.replaceAll(PLACEHOLDER_CLEANUP, "");
         return htmlContent;
     }
 
-    // Implementation of ManualNotificationRepository
-    @Override
-    public Mono<Void> sendManualDecisionNotification(Long applicationId, String documentId, String email, 
-                                                    String previousStatus, String newStatus, String comments, String reason) {
-        log.info("Sending manual decision notification for application ID: {} with decision: {}", 
-                applicationId, newStatus);
-
-        return Mono.fromCallable(() -> buildNotificationDto(applicationId, documentId, email, previousStatus, newStatus, comments, reason))
-                .flatMap(this::sendMessageToSqs)
-                .doOnSuccess(v -> log.info("Manual decision notification sent successfully for application ID: {}", 
-                        applicationId))
-                .doOnError(error -> log.error("Failed to send manual decision notification for application ID: {}: {}", 
-                        applicationId, error.getMessage()));
-    }
-
-    private ManualNotificationDto buildNotificationDto(Long applicationId, String documentId, String email,
-                                                      String previousStatus, String newStatus, String comments, String reason) {
-        String decision = mapStatusToDecision(newStatus);
-        
-        return ManualNotificationDto.builder()
-                .applicationId(applicationId)
-                .documentId(documentId)
-                .customerName("Cliente")
-                .email(email)
-                .loanType("Préstamo Personal")
-                .amount(0.0) // Will be filled by Lambda if needed
-                .termMonths(0) // Will be filled by Lambda if needed
-                .decision(decision)
-                .previousStatus(previousStatus)
-                .newStatus(newStatus)
-                .comments(comments)
-                .reason(reason)
-                .interestRate(12.5)
-                .processedAt(LocalDateTime.now().format(FORMATTER))
-                .notificationType(NOTIFICATION_TYPE)
-                .build();
-    }
-
-    private String mapStatusToDecision(String status) {
-        return switch (status.toLowerCase()) {
-            case "approved", "aprobada" -> "APPROVED";
-            case "rejected", "rechazada" -> "REJECTED";
-            default -> status.toUpperCase();
-        };
-    }
-
-    private Mono<Void> sendMessageToSqs(ManualNotificationDto notificationDto) {
-        return Mono.fromCallable(() -> {
-            try {
-                String messageBody = objectMapper.writeValueAsString(notificationDto);
-                log.debug("Sending SQS message: {}", messageBody);
-
-                SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
-                        .queueUrl(notificationsQueueUrl)
-                        .messageBody(messageBody)
-                        .build();
-
-                SendMessageResponse response = sqsClient.sendMessage(sendMessageRequest);
-                log.info("SQS message sent successfully with MessageId: {}", response.messageId());
-                return response;
-
-            } catch (JsonProcessingException e) {
-                log.error("Error serializing notification DTO to JSON: {}", e.getMessage());
-                throw new SqsOperationException("Failed to serialize notification message", e);
-            } catch (SqsException e) {
-                log.error("Error sending message to SQS: {}", e.getMessage());
-                throw new SqsOperationException("Failed to send message to SQS queue", e);
-            }
-        }).then();
-    }
 
 }

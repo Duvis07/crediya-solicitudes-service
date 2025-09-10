@@ -1,4 +1,4 @@
-package co.com.crediya.solicitudes.aws;
+package co.com.crediya.solicitudes.aws.adapter;
 
 import co.com.crediya.solicitudes.aws.sqs.SqsService;
 import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;

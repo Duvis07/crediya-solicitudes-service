@@ -23,7 +23,8 @@ public class SqsService {
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper;
 
-    private static final String QUEUE_URL = "http://localhost:4566/000000000000/solicitudes-capacidad-queue";
+    private static final String CAPACITY_QUEUE_URL = "http://localhost:4566/000000000000/solicitudes-capacidad-queue";
+    private static final String MANUAL_NOTIFICATIONS_QUEUE_URL = "http://localhost:4566/000000000000/notificaciones-manuales-queue";
     private static final String DATA_TYPE_STRING = "String";
 
     /**
@@ -37,7 +38,7 @@ public class SqsService {
                         String messageBody = objectMapper.writeValueAsString(solicitudDto);
 
                         SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
-                                .queueUrl(QUEUE_URL)
+                                .queueUrl(CAPACITY_QUEUE_URL)
                                 .messageBody(messageBody)
                                 .messageAttributes(Map.of(
                                         "solicitudId", MessageAttributeValue.builder()
@@ -72,6 +73,85 @@ public class SqsService {
                 })
                 .doOnSuccess(messageId -> log.info("Message sent to SQS with ID: {}", messageId))
                 .doOnError(error -> log.error("Error sending to SQS: {}", error.getMessage()));
+    }
+
+    /**
+     * Sends manual notification to SQS queue with complete user data
+     */
+    public Mono<String> sendManualNotificationWithUserData(Long applicationId, String documentId, String email, 
+                                                           String fullName, String newStatus, 
+                                                           String comments, String reason) {
+        return Mono.fromCallable(() -> {
+                    try {
+                        log.info("Sending manual notification for application {} to SQS queue", applicationId);
+                        log.info("Input parameters: applicationId={}, documentId={}, email={}, fullName={}, newStatus={}", 
+                                applicationId, documentId, email, fullName, newStatus);
+
+                        String decision = mapStatusToDecision(newStatus);
+                        log.info("Mapped decision: {} -> {}", newStatus, decision);
+                        
+                        Map<String, Object> notificationData = Map.of(
+                                "solicitudId", applicationId.toString(),
+                                "documentoIdentidad", documentId,
+                                "email", email,
+                                "nombreCompleto", fullName,
+                                "decision", decision,
+                                "comments", comments != null ? comments : "",
+                                "reason", reason != null ? reason : "",
+                                "isManualNotification", true
+                        );
+
+                        String messageBody = objectMapper.writeValueAsString(notificationData);
+                        log.info("Generated message body: {}", messageBody);
+
+                        SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+                                .queueUrl(MANUAL_NOTIFICATIONS_QUEUE_URL)
+                                .messageBody(messageBody)
+                                .messageAttributes(Map.of(
+                                        "applicationId", MessageAttributeValue.builder()
+                                                .stringValue(applicationId.toString())
+                                                .dataType(DATA_TYPE_STRING)
+                                                .build(),
+                                        "notificationType", MessageAttributeValue.builder()
+                                                .stringValue("MANUAL_DECISION")
+                                                .dataType(DATA_TYPE_STRING)
+                                                .build(),
+                                        "newStatus", MessageAttributeValue.builder()
+                                                .stringValue(newStatus)
+                                                .dataType(DATA_TYPE_STRING)
+                                                .build()
+                                ))
+                                .build();
+
+                        SendMessageResponse response = sqsClient.sendMessage(sendMessageRequest);
+
+                        log.info("Manual notification for application {} sent successfully to SQS. MessageId: {}",
+                                applicationId, response.messageId());
+
+                        return response.messageId();
+
+                    } catch (JsonProcessingException e) {
+                        log.error("Error serializing manual notification for SQS: {}", e.getMessage());
+                        throw new SqsOperationException("Error sending manual notification to SQS queue", e);
+                    } catch (Exception e) {
+                        log.error("Error sending manual notification to SQS: {}", e.getMessage());
+                        throw new SqsOperationException("SQS communication error for manual notification", e);
+                    }
+                })
+                .doOnSuccess(messageId -> log.info("Manual notification sent to SQS with ID: {}", messageId))
+                .doOnError(error -> log.error("Error sending manual notification to SQS: {}", error.getMessage()));
+    }
+
+    /**
+     * Maps application status to decision format expected by SQS consumer
+     */
+    private String mapStatusToDecision(String status) {
+        return switch (status.toLowerCase()) {
+            case "aprobada", "approved" -> "APROBADA";
+            case "rechazada", "rejected" -> "RECHAZADA";
+            case "pendiente de revision", "revision manual", "manual review" -> "REVISION_MANUAL";
+            default -> status.toUpperCase();
+        };
     }
 
 }

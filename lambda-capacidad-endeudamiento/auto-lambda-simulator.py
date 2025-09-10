@@ -144,11 +144,13 @@ class AutoLambdaSimulator:
     def process_manual_notification(self, body, message):
         """Procesa una notificación manual y envía email"""
         try:
-            logger.info(f"📧 Procesando notificación manual para aplicación: {body.get('applicationId', 'N/A')}")
+            # Usar solicitudId que es como se envía desde el servicio
+            application_id = body.get('solicitudId') or body.get('applicationId')
+            logger.info(f"📧 Procesando notificación manual para aplicación: {application_id}")
 
             # Extraer datos del mensaje
-            application_id = body.get('applicationId')
             email = body.get('email')
+            full_name = body.get('nombreCompleto', 'Cliente')
             decision = body.get('decision', 'UNKNOWN')
             comments = body.get('comments', '')
             reason = body.get('reason', '')
@@ -157,6 +159,7 @@ class AutoLambdaSimulator:
             self.send_manual_notification_email({
                 'applicationId': application_id,
                 'email': email,
+                'nombreCompleto': full_name,
                 'decision': decision,
                 'comments': comments,
                 'reason': reason

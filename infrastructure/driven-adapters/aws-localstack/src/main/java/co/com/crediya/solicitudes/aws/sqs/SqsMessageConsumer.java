@@ -4,6 +4,7 @@ import co.com.crediya.solicitudes.aws.dto.EvaluationResultDto;
 import co.com.crediya.solicitudes.model.exceptions.MessageProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import co.com.crediya.solicitudes.aws.email.EmailNotificationService;
+import co.com.crediya.solicitudes.aws.email.ManualEmailNotificationService;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class SqsMessageConsumer {
     private final ObjectMapper objectMapper;
     private final CapacityEvaluationRepository capacityEvaluationRepository;
     private final EmailNotificationService emailNotificationService;
+    private final ManualEmailNotificationService manualEmailNotificationService;
 
     private static final String RESULTS_QUEUE_URL = "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue";
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -148,23 +150,21 @@ public class SqsMessageConsumer {
 
     private Mono<Void> processManualNotification(EvaluationResultDto resultado) {
         // For manual notifications, we don't need to update capacity evaluation
-        // Just send the email notification directly
+        // Just send the email notification directly using specific manual templates
         Mono<Void> emailMono = switch (resultado.getDecision()) {
-            case "APPROVED", "APROBADA" -> emailNotificationService.sendPaymentPlanNotification(
+            case "APPROVED", "APROBADA" -> manualEmailNotificationService.sendManualApprovalNotification(
                     resultado.getEmail(),
                     resultado.getNombreCompleto(),
                     resultado.getSolicitudId(),
-                    null, // No amount available for manual notifications
-                    null, // No calculated quota
-                    null  // No payment plan
+                    resultado.getComments() != null ? resultado.getComments() : "Aprobación tras revisión manual"
             );
-            case "REJECTED", "RECHAZADA" -> emailNotificationService.sendRejectionNotification(
+            case "REJECTED", "RECHAZADA" -> manualEmailNotificationService.sendManualRejectionNotification(
                     resultado.getEmail(),
                     resultado.getNombreCompleto(),
                     resultado.getSolicitudId(),
                     resultado.getReason() != null ? resultado.getReason() : resultado.getComments()
             );
-            default -> emailNotificationService.sendManualReviewNotification(
+            default -> manualEmailNotificationService.sendManualReviewNotification(
                     resultado.getEmail(),
                     resultado.getNombreCompleto(),
                     resultado.getSolicitudId()
