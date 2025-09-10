@@ -73,9 +73,10 @@ public class Handler {
                                 .flatMap(validatedRequest ->
                                         updateApplicationStatusUseCase.updateApplicationStatus(
                                                         applicationId,
-                                                        validatedRequest.getStatus())
+                                                        validatedRequest.getStatus(),
+                                                        validatedRequest.getComments())
                                                 .doOnSuccess(result ->
-                                                        log.info("Application status updated manually to: {} for application ID: {}", 
+                                                        log.info("Application status updated manually to: {} for application ID: {} with SQS notification sent", 
                                                                 validatedRequest.getStatus(), applicationId))
                                                 .map(result -> updateApplicationStatusMapper.toResponse(
                                                         result,
@@ -86,7 +87,7 @@ public class Handler {
                 .flatMap(response -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(response))
-                .doOnSuccess(response -> log.info("Application status updated successfully"))
+                .doOnSuccess(response -> log.info("Application status updated successfully with SQS notification"))
                 .onErrorResume(error -> {
                     log.error("Error updating application status: {}", error.getMessage());
                     return Mono.error(error);

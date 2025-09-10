@@ -130,6 +130,60 @@ public class SqsMessageConsumer {
 
 
     private Mono<Void> processEvaluationResult(EvaluationResultDto resultado) {
+        // Check if this is a manual notification
+        boolean isManualNotification = Boolean.TRUE.equals(resultado.getIsManualNotification());
+        
+        if (isManualNotification) {
+            log.info("Processing manual notification for application: {}", resultado.getSolicitudId());
+            return processManualNotification(resultado);
+        } else {
+            log.info("Processing automatic evaluation result for application: {}", resultado.getSolicitudId());
+            return processAutomaticEvaluation(resultado);
+        }
+    }
+
+    private Mono<Void> processManualNotification(EvaluationResultDto resultado) {
+        // For manual notifications, we don't need to update capacity evaluation
+        // Just send the email notification directly
+        Mono<Void> emailMono = switch (resultado.getDecision()) {
+            case "APPROVED", "APROBADA" -> emailNotificationService.sendPaymentPlanNotification(
+                    resultado.getEmail(),
+                    resultado.getNombreCompleto(),
+                    resultado.getSolicitudId(),
+                    null, // No amount available for manual notifications
+                    null, // No calculated quota
+                    null  // No payment plan
+            );
+            case "REJECTED", "RECHAZADA" -> emailNotificationService.sendRejectionNotification(
+                    resultado.getEmail(),
+                    resultado.getNombreCompleto(),
+                    resultado.getSolicitudId(),
+                    resultado.getReason() != null ? resultado.getReason() : resultado.getComments()
+            );
+            default -> emailNotificationService.sendManualReviewNotification(
+                    resultado.getEmail(),
+                    resultado.getNombreCompleto(),
+                    resultado.getSolicitudId()
+            );
+        };
+
+        return emailMono.retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
+                .maxBackoff(Duration.ofSeconds(5))
+                .doBeforeRetry(retrySignal ->
+                        log.warn("Retrying manual notification email for application {}, attempt: {}",
+                                resultado.getSolicitudId(), retrySignal.totalRetries() + 1))
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+                    log.error("Manual notification email failed after {} retries for application {}",
+                            retrySignal.totalRetries(), resultado.getSolicitudId());
+                    return retrySignal.failure();
+                }))
+                .doOnSuccess(v -> log.info("Manual notification processed successfully for application: {}",
+                        resultado.getSolicitudId()))
+                .doOnError(error -> log.error("Error processing manual notification for application {}: {}",
+                        resultado.getSolicitudId(), error.getMessage()));
+    }
+
+    private Mono<Void> processAutomaticEvaluation(EvaluationResultDto resultado) {
         return capacityEvaluationRepository.processEvaluationResult(
                         resultado.getSolicitudId(),
                         resultado.getDecision(),
@@ -176,9 +230,9 @@ public class SqsMessageConsumer {
                                 return retrySignal.failure();
                             }));
                 })
-                .doOnSuccess(v -> log.info("Result processed successfully for application: {}",
+                .doOnSuccess(v -> log.info("Automatic evaluation processed successfully for application: {}",
                         resultado.getSolicitudId()))
-                .doOnError(error -> log.error("Error processing result for application {}: {}",
+                .doOnError(error -> log.error("Error processing automatic evaluation for application {}: {}",
                         resultado.getSolicitudId(), error.getMessage()));
     }
 

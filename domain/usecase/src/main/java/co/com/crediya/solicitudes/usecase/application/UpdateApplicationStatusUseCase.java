@@ -8,6 +8,7 @@ import co.com.crediya.solicitudes.model.exceptions.InvalidStateTransitionExcepti
 import co.com.crediya.solicitudes.model.exceptions.StateNotFoundException;
 import co.com.crediya.solicitudes.model.state.State;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
+import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
 import co.com.crediya.solicitudes.usecase.utils.ApplicationStateTransitionUtils;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
@@ -20,10 +21,15 @@ public class UpdateApplicationStatusUseCase {
 
     private final ApplicationRepository applicationRepository;
     private final StateRepository stateRepository;
+    private final ManualNotificationRepository manualNotificationRepository;
 
     private static final Logger log = Logger.getLogger(UpdateApplicationStatusUseCase.class.getName());
 
     public Mono<UpdateApplicationStatusResult> updateApplicationStatus(Long applicationId, String newStatus) {
+        return updateApplicationStatus(applicationId, newStatus, null);
+    }
+
+    public Mono<UpdateApplicationStatusResult> updateApplicationStatus(Long applicationId, String newStatus, String comments) {
 
         return applicationRepository.findById(applicationId)
                 .switchIfEmpty(Mono.error(new ApplicationNotFoundException("Application not found with ID: " + applicationId)))
@@ -51,14 +57,29 @@ public class UpdateApplicationStatusUseCase {
                                                 log.info("Found target state ID: " + newState.getStateId() + " for status: " + newStatus);
                                                 Application updatedApplication = updateApplicationWithNewState(application, newState);
                                                 return applicationRepository.save(updatedApplication)
-                                                        .map(savedApp -> {
+                                                        .flatMap(savedApp -> {
                                                             log.info("Application status updated successfully from '" +
                                                                     previousState.getName() + "' to '" + newState.getName() + "'");
-                                                            return new UpdateApplicationStatusResult(
-                                                                    savedApp,
-                                                                    previousState.getName(),
-                                                                    newState.getName()
-                                                            );
+                                                            
+                                                            // Send SQS notification for manual decision
+                                                            return manualNotificationRepository.sendManualDecisionNotification(
+                                                                    savedApp.getApplicationId(), savedApp.getDocumentId(), savedApp.getEmail(),
+                                                                    previousState.getName(), newState.getName(), comments, newState.getName())
+                                                                    .then(Mono.just(new UpdateApplicationStatusResult(
+                                                                            savedApp,
+                                                                            previousState.getName(),
+                                                                            newState.getName()
+                                                                    )))
+                                                                    .doOnSuccess(result -> log.info("Manual decision notification sent for application ID: " + applicationId))
+                                                                    .onErrorResume(notificationError -> {
+                                                                        log.severe("Failed to send manual decision notification: " + notificationError.getMessage());
+                                                                        // Continue with the result even if notification fails
+                                                                        return Mono.just(new UpdateApplicationStatusResult(
+                                                                                savedApp,
+                                                                                previousState.getName(),
+                                                                                newState.getName()
+                                                                        ));
+                                                                    });
                                                         });
                                             });
                                 })

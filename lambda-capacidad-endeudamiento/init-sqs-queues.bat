@@ -28,7 +28,14 @@ curl -X POST "http://localhost:4566/" ^
 echo ✓ Cola resultados creada
 
 echo.
-echo 4. Listando colas disponibles...
+echo 4. Creando cola notificaciones-manuales-queue...
+curl -X POST "http://localhost:4566/" ^
+  -H "Content-Type: application/x-www-form-urlencoded" ^
+  -d "Action=CreateQueue&QueueName=notificaciones-manuales-queue&Version=2012-11-05"
+echo ✓ Cola notificaciones manuales creada
+
+echo.
+echo 5. Listando colas disponibles...
 curl -X POST "http://localhost:4566/" ^
   -H "Content-Type: application/x-www-form-urlencoded" ^
   -d "Action=ListQueues&Version=2012-11-05"

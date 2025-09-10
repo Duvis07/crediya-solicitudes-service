@@ -60,4 +60,13 @@ public class EvaluationResultDto {
 
     @JsonProperty("observaciones")
     private String observaciones;
+
+    @JsonProperty("comments")
+    private String comments;
+
+    @JsonProperty("reason")
+    private String reason;
+
+    @JsonProperty("isManualNotification")
+    private Boolean isManualNotification;
 }

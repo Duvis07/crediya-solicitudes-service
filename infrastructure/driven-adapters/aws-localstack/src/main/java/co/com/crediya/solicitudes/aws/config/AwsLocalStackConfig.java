@@ -90,4 +90,5 @@ public class AwsLocalStackConfig {
             .credentialsProvider(credentialsProvider())
             .build();
     }
+
 }
