@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SolicitudCapacidadDto {
+public class CapacityRequestDto {
 
     @JsonProperty("solicitud_id")
     private String solicitudId;

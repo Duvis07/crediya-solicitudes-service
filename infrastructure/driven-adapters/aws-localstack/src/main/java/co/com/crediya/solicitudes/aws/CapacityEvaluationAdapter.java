@@ -1,7 +1,7 @@
 package co.com.crediya.solicitudes.aws;
 
 import co.com.crediya.solicitudes.aws.sqs.SqsService;
-import co.com.crediya.solicitudes.aws.dto.SolicitudCapacidadDto;
+import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
@@ -41,7 +41,7 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
                     // Build full name from firstName and lastName
                     String fullName = buildFullName(userResponse.getFirstName(), userResponse.getLastName());
                     
-                    return SolicitudCapacidadDto.builder()
+                    return CapacityRequestDto.builder()
                             .solicitudId(String.valueOf(application.getApplicationId()))
                             .documentoIdentidad(application.getDocumentId())
                             .monto(application.getAmount())
@@ -58,7 +58,7 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
                     log.warn("Could not retrieve user info for documentId {}, using default name: {}", 
                             application.getDocumentId(), error.getMessage());
                     // Fallback to default name if auth service fails
-                    return Mono.just(SolicitudCapacidadDto.builder()
+                    return Mono.fromCallable(() -> CapacityRequestDto.builder()
                             .solicitudId(String.valueOf(application.getApplicationId()))
                             .documentoIdentidad(application.getDocumentId())
                             .monto(application.getAmount())

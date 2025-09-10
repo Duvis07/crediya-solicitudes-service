@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.aws.sqs;
 
-import co.com.crediya.solicitudes.aws.dto.ResultadoEvaluacionDto;
+import co.com.crediya.solicitudes.aws.dto.EvaluationResultDto;
 import co.com.crediya.solicitudes.model.exceptions.MessageProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import co.com.crediya.solicitudes.aws.email.EmailNotificationService;
@@ -108,7 +108,7 @@ public class SqsMessageConsumer {
                     log.warn("Could not decode as escaped JSON, using original message: {}", e.getMessage());
                 }
                 
-                ResultadoEvaluacionDto resultado = objectMapper.readValue(messageBody, ResultadoEvaluacionDto.class);
+                EvaluationResultDto resultado = objectMapper.readValue(messageBody, EvaluationResultDto.class);
                 
                 log.info("Result received for application {}: {}", 
                     resultado.getSolicitudId(), resultado.getDecision());
@@ -124,7 +124,7 @@ public class SqsMessageConsumer {
         .then();
     }
 
-    private Mono<Void> processEvaluationResult(ResultadoEvaluacionDto resultado) {
+    private Mono<Void> processEvaluationResult(EvaluationResultDto resultado) {
         return capacityEvaluationRepository.processEvaluationResult(
                 resultado.getSolicitudId(),
                 resultado.getDecision(),

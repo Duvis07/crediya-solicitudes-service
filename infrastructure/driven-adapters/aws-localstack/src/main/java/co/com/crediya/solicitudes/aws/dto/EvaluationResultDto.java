@@ -14,7 +14,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResultadoEvaluacionDto {
+public class EvaluationResultDto {
 
     @JsonProperty("solicitudId")
     private String solicitudId;

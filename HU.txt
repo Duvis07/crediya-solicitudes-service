@@ -207,3 +207,93 @@ Donde: P= Monto, i= Tasa de interés mensual, n= Plazo en meses.
 -- SI CuotaPrestamoNuevo > CapacidadDisponible ➔ El préstamo se RECHAZA.
 
 - Debe responder por correo al usuario el plan de pago, osea el listado de todas las cuotas que debe pagar diferenciando el abono a capital del pago de intereses.
+
+
+--------------------------------------------------------------------------------
+HU8
+Mostrar Cantidad de prestamos	Como administrador, quiero ver en un panel la cantidad total de solicitudes aprobadas para entender la tracción del negocio.	- microservicio REPORTES con WebFlux.
+
+- El endpoint (GET /api/v1/reportes)
+
+- Usará una base de datos DynamoDB.
+
+- Debe seguir los principios de la arquitectura hexagonal, separando el dominio de la infraestructura.
+
+- El microservicio SOLICITUDES debe enviar un evento a SQS cada vez que se aprueba una solicitud.
+
+- El microservicio REPORTES debe consumir estos eventos para actualizar el contador en DynamoDB.
+
+- Se deben agregar logs de traza para monitorear
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados
+
+- el microsericio de REPORTES debe tener su docker y estar en docker-compose	- El sistema muestra un número actualizado que representa la cantidad total de préstamos aprobados.
+
+- La actualización de este número es casi en tiempo real, con una latencia mínima.
+
+- Debe persistirse un registro que se actualice a medida que van llegando mas prestamos aprobados
+
+
+--------------------------------------------------------------------------------
+HU9
+Mostrar Monto total de prestamo	Como administrador
+Necesito un reporte que me muestre el monto total de todos los préstamos aprobados para tener una visión clara del capital que se ha prestado.
+- microservicio REPORTES con WebFlux.
+
+- El endpoint (GET /api/v1/reportes)
+
+- Usará una base de datos DynamoDB.
+
+- Debe seguir los principios de la arquitectura hexagonal, separando el dominio de la infraestructura.
+
+- El microservicio SOLICITUDES debe enviar un evento a SQS cada vez que se aprueba una solicitud.
+
+- El microservicio REPORTES debe consumir estos eventos para actualizar el contador en DynamoDB.
+
+- Se deben agregar logs de traza para monitorear
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados	- El sistema muestra un número actualizado que representa el monto total de todos los préstamos aprobados.
+
+- El reporte debe ser preciso y reflejar el estado actual del negocio.
+
+- Debe persistirse un registro que se actualice a medida que van llegando mas prestamos aprobados
+
+--------------------------------------------------------------------------------
+HU10
+	Despliegue de la solución
+		Como equipo de desarrollo necesito desplegar la aplicación en un entorno de producción para que las funcionalidades puedan ser probadas por el negocio.	- Las imágenes de Docker se publican en ECR.
+
+- Los servicios se despliegan en ECS con Fargate.
+
+- Las variables de entorno que crean que deben ser seguras utilizar secret manager como lo define el scaffold.
+
+- Se configura un ELB para distribuir las solicitudes HTTP entrantes.
+
+- Se configura un API Gateway como punto de entrada de la aplicación
+
+- Se implementa el Auto Scaling para que los servicios puedan escalar horizontalmente según la demanda (ej. CPU o cantidad de solicitudes).
+
+- Se configuran las reglas de Health Check en el ELB (se agrega librerias como actuator para que nos muestre los health check) para asegurar que el tráfico solo se envíe a los contenedores que están funcionando correctamente.
+
+- Se implementa una RDS para usar una base de datos relcional distribuida.
+
+- Se configuran alarmas en CloudWatch para notificar sobre fallos en los servicios.
+
+- Toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados
+
+- Todas las APIs son accesibles y funcionales en un entorno de producción.
+
+- El sistema permanece operativo durante picos de tráfico.
+
+--------------------------------------------------------------------------------
+HU11
+	Generación de reportes de rendimiento de forma programada
+		Como administrador quiero visualizar el rendimiento total del negocio, por medio de un correo. Esto me permitirá tomar decisiones estratégicas de manera informada.	- El proceso está implementado de forma reactiva y no bloqueante, usando la programación funcional de WebFlux con Mono y Flux.
+
+- Se configura una tarea programada que se dispara automáticamente.
+
+- La lógica de agregación y procesamiento de datos se realiza de manera eficiente en un flujo reactivo.
+
+- toda excepción que se produzca debe ser manejada y procesada, para que la usuario que usa la api no le lleguen mensajes inesperados	- Enviar un correo consolidando la información de cantidad de prestamos aprobados y monto total prestado.
+
+- Se genera enviara automaticamente a las 8pm

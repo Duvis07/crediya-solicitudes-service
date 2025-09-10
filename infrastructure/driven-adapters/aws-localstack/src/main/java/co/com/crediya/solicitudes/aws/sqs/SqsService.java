@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.aws.sqs;
 
-import co.com.crediya.solicitudes.aws.dto.SolicitudCapacidadDto;
+import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;
 import co.com.crediya.solicitudes.model.exceptions.SqsOperationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +29,7 @@ public class SqsService {
     /**
      * Sends an application to SQS queue for debt capacity processing
      */
-    public Mono<String> sendApplicationForEvaluation(SolicitudCapacidadDto solicitudDto) {
+    public Mono<String> sendApplicationForEvaluation(CapacityRequestDto solicitudDto) {
         return Mono.fromCallable(() -> {
                     try {
                         log.info("Sending application {} to SQS queue for automatic evaluation", solicitudDto.getSolicitudId());
