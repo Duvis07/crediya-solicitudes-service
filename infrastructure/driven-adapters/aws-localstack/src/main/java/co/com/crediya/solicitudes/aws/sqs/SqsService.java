@@ -64,7 +64,6 @@ public class SqsService {
                         return response.messageId();
 
                     } catch (JsonProcessingException e) {
-                        log.error("Error serializing application for SQS: {}", e.getMessage());
                         throw new SqsOperationException("Error sending application to SQS queue", e);
                     } catch (Exception e) {
                         log.error("Error sending message to SQS: {}", e.getMessage());
@@ -78,18 +77,12 @@ public class SqsService {
     /**
      * Sends manual notification to SQS queue with complete user data
      */
-    public Mono<String> sendManualNotificationWithUserData(Long applicationId, String documentId, String email, 
-                                                           String fullName, String newStatus, 
+    public Mono<String> sendManualNotificationWithUserData(Long applicationId, String documentId, String email,
+                                                           String fullName, String decision,
                                                            String comments, String reason) {
         return Mono.fromCallable(() -> {
                     try {
-                        log.info("Sending manual notification for application {} to SQS queue", applicationId);
-                        log.info("Input parameters: applicationId={}, documentId={}, email={}, fullName={}, newStatus={}", 
-                                applicationId, documentId, email, fullName, newStatus);
 
-                        String decision = mapStatusToDecision(newStatus);
-                        log.info("Mapped decision: {} -> {}", newStatus, decision);
-                        
                         Map<String, Object> notificationData = Map.of(
                                 "solicitudId", applicationId.toString(),
                                 "documentoIdentidad", documentId,
@@ -116,8 +109,8 @@ public class SqsService {
                                                 .stringValue("MANUAL_DECISION")
                                                 .dataType(DATA_TYPE_STRING)
                                                 .build(),
-                                        "newStatus", MessageAttributeValue.builder()
-                                                .stringValue(newStatus)
+                                        "decision", MessageAttributeValue.builder()
+                                                .stringValue(decision)
                                                 .dataType(DATA_TYPE_STRING)
                                                 .build()
                                 ))
@@ -131,10 +124,8 @@ public class SqsService {
                         return response.messageId();
 
                     } catch (JsonProcessingException e) {
-                        log.error("Error serializing manual notification for SQS: {}", e.getMessage());
                         throw new SqsOperationException("Error sending manual notification to SQS queue", e);
                     } catch (Exception e) {
-                        log.error("Error sending manual notification to SQS: {}", e.getMessage());
                         throw new SqsOperationException("SQS communication error for manual notification", e);
                     }
                 })
@@ -142,16 +133,5 @@ public class SqsService {
                 .doOnError(error -> log.error("Error sending manual notification to SQS: {}", error.getMessage()));
     }
 
-    /**
-     * Maps application status to decision format expected by SQS consumer
-     */
-    private String mapStatusToDecision(String status) {
-        return switch (status.toLowerCase()) {
-            case "aprobada", "approved" -> "APROBADA";
-            case "rechazada", "rejected" -> "RECHAZADA";
-            case "pendiente de revision", "revision manual", "manual review" -> "REVISION_MANUAL";
-            default -> status.toUpperCase();
-        };
-    }
 
 }

@@ -1,22 +1,12 @@
 package co.com.crediya.solicitudes.aws.email;
 
-import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.exceptions.EmailNotificationException;
-import co.com.crediya.solicitudes.model.exceptions.EmailTemplateException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -89,31 +79,6 @@ public class EmailNotificationService extends BaseEmailService {
         });
     }
 
-    /**
-     * Sends manual review notification via email
-     */
-    public Mono<Void> sendManualReviewNotification(
-            String email,
-            String nombreCompleto,
-            String solicitudId) {
-
-        return Mono.fromRunnable(() -> {
-            try {
-                log.info("Sending manual review notification to: {} for application: {}", email, solicitudId);
-
-                String htmlContent = loadHtmlTemplate("email-templates/manual-review.html");
-                htmlContent = processManualReviewTemplate(htmlContent, nombreCompleto, solicitudId);
-
-                sendEmailSync(email, "Solicitud en Revisión Manual - CREDIYA", htmlContent);
-
-                log.info("Manual review notification sent successfully to: {}", email);
-
-            } catch (Exception e) {
-                log.error("Error sending manual review notification to {}: {}", email, e.getMessage());
-                throw new EmailNotificationException("Error sending manual review email", e);
-            }
-        });
-    }
 
 
     /**
@@ -172,16 +137,6 @@ public class EmailNotificationService extends BaseEmailService {
         return htmlContent;
     }
 
-    /**
-     * Processes manual review email template with dynamic content
-     */
-    private String processManualReviewTemplate(String htmlContent, String nombreCompleto, String solicitudId) {
-        htmlContent = htmlContent.replace(PLACEHOLDER_NOMBRE, nombreCompleto != null ? nombreCompleto : DEFAULT_CUSTOMER);
-        htmlContent = htmlContent.replace(PLACEHOLDER_SOLICITUD, solicitudId != null ? solicitudId : "N/A");
-        // Clean up any remaining placeholders
-        htmlContent = htmlContent.replaceAll(PLACEHOLDER_CLEANUP, "");
-        return htmlContent;
-    }
 
 
 }

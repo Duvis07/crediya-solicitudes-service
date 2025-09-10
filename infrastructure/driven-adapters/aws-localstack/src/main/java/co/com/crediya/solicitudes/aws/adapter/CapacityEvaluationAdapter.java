@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.aws.adapter;
 
 import co.com.crediya.solicitudes.aws.sqs.SqsService;
+import co.com.crediya.solicitudes.aws.utils.UserNameUtils;
 import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
@@ -39,7 +40,7 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
         return authServiceClient.getUserByDocumentId(application.getDocumentId())
                 .map(userResponse -> {
                     // Build full name from firstName and lastName
-                    String fullName = buildFullName(userResponse.getFirstName(), userResponse.getLastName());
+                    String fullName = UserNameUtils.buildFullName(userResponse.getFirstName(), userResponse.getLastName());
                     
                     return CapacityRequestDto.builder()
                             .solicitudId(String.valueOf(application.getApplicationId()))
@@ -55,21 +56,9 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
                             .build();
                 })
                 .onErrorResume(error -> {
-                    log.warn("Could not retrieve user info for documentId {}, using default name: {}", 
+                    log.error("Failed to retrieve user info for documentId {}: {}", 
                             application.getDocumentId(), error.getMessage());
-                    // Fallback to default name if auth service fails
-                    return Mono.fromCallable(() -> CapacityRequestDto.builder()
-                            .solicitudId(String.valueOf(application.getApplicationId()))
-                            .documentoIdentidad(application.getDocumentId())
-                            .monto(application.getAmount())
-                            .plazoMeses(application.getTerm())
-                            .tasaInteresAnual(DEFAULT_INTEREST_RATE)
-                            .salarioBase(DEFAULT_BASE_SALARY)
-                            .tipoPrestamo(DEFAULT_LOAN_TYPE)
-                            .email(application.getEmail())
-                            .nombreCompleto("Cliente")
-                            .timestamp(System.currentTimeMillis())
-                            .build());
+                    return Mono.error(new RuntimeException("Unable to retrieve user information for application processing", error));
                 })
                 .flatMap(sqsService::sendApplicationForEvaluation)
                 .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
@@ -112,13 +101,10 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
 
     @Override
     public Mono<Boolean> isAutomaticValidationEnabled(Long loanTypeId) {
-        // For now, we enable automatic validation for all loan types
-        // In the future this could come from database configuration
         log.info("Checking automatic validation for loan type: {}", loanTypeId);
         
         return loanTypeRepository.findById(loanTypeId)
             .map(loanType -> {
-                // Business logic: automatic validation enabled for certain types
                 boolean enabled = true; // Enabled by default
                 log.info("Automatic validation {} for loan type: {}", 
                     enabled ? "enabled" : "disabled", loanType.getName());
@@ -129,21 +115,6 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
     }
 
 
-    /**
-     * Builds full name from first and last name with null safety
-     */
-    private String buildFullName(String firstName, String lastName) {
-        if (firstName == null && lastName == null) {
-            return "Cliente";
-        }
-        if (firstName == null) {
-            return lastName.trim();
-        }
-        if (lastName == null) {
-            return firstName.trim();
-        }
-        return (firstName.trim() + " " + lastName.trim()).trim();
-    }
 
     private String mapDecisionToState(String decision) {
         return switch (decision) {

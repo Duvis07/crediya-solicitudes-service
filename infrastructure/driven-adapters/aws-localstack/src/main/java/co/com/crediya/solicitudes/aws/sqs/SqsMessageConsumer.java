@@ -149,8 +149,6 @@ public class SqsMessageConsumer {
     }
 
     private Mono<Void> processManualNotification(EvaluationResultDto resultado) {
-        // For manual notifications, we don't need to update capacity evaluation
-        // Just send the email notification directly using specific manual templates
         Mono<Void> emailMono = switch (resultado.getDecision()) {
             case "APPROVED", "APROBADA" -> manualEmailNotificationService.sendManualApprovalNotification(
                     resultado.getEmail(),
@@ -211,11 +209,6 @@ public class SqsMessageConsumer {
                                 resultado.getNombreCompleto(),
                                 resultado.getSolicitudId(),
                                 resultado.getMotivo()
-                        );
-                        case "REVISION_MANUAL" -> emailNotificationService.sendManualReviewNotification(
-                                resultado.getEmail(),
-                                resultado.getNombreCompleto(),
-                                resultado.getSolicitudId()
                         );
                         default -> {
                             log.warn("Unknown decision: {}", resultado.getDecision());

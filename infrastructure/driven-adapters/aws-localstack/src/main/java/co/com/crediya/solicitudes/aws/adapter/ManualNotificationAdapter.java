@@ -1,6 +1,7 @@
 package co.com.crediya.solicitudes.aws.adapter;
 
 import co.com.crediya.solicitudes.aws.sqs.SqsService;
+import co.com.crediya.solicitudes.aws.utils.UserNameUtils;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
 import co.com.crediya.solicitudes.webclient.AuthServiceClient;
@@ -32,33 +33,24 @@ public class ManualNotificationAdapter implements ManualNotificationRepository {
                             .doOnNext(userResponse -> log.info("Retrieved user info: firstName={}, lastName={}", 
                                     userResponse.getFirstName(), userResponse.getLastName()))
                             .map(userResponse -> {
-                                String fullName = buildFullName(userResponse.getFirstName(), userResponse.getLastName());
-                                log.info("Sending manual notification with: applicationId={}, fullName={}, newStatus={}", 
-                                        application.getApplicationId(), fullName, newStatus);
+                                String fullName = UserNameUtils.buildFullName(userResponse.getFirstName(), userResponse.getLastName());
+                                String decision = mapStatusToDecision(newStatus);
+                                log.info("Sending manual notification with: applicationId={}, fullName={}, newStatus={} -> decision={}", 
+                                        application.getApplicationId(), fullName, newStatus, decision);
                                 return sqsService.sendManualNotificationWithUserData(
                                         application.getApplicationId(),
                                         application.getDocumentId(),
                                         application.getEmail(),
                                         fullName,
-                                        newStatus,
+                                        decision,
                                         comments,
                                         reason
                                 );
                             })
                             .onErrorResume(error -> {
-                                log.warn("Could not retrieve user info for documentId {}, using default name: {}", 
+                                log.error("Failed to retrieve user info for documentId {}: {}", 
                                         application.getDocumentId(), error.getMessage());
-                                log.info("Fallback: Sending manual notification with: applicationId={}, fullName=Cliente, newStatus={}", 
-                                        application.getApplicationId(), newStatus);
-                                return Mono.fromCallable(() -> sqsService.sendManualNotificationWithUserData(
-                                        application.getApplicationId(),
-                                        application.getDocumentId(),
-                                        application.getEmail(),
-                                        "Cliente",
-                                        newStatus,
-                                        comments,
-                                        reason
-                                ));
+                                return Mono.error(new RuntimeException("Unable to retrieve user information for manual notification", error));
                             })
                             .flatMap(mono -> mono)
                 )
@@ -66,18 +58,15 @@ public class ManualNotificationAdapter implements ManualNotificationRepository {
     }
 
     /**
-     * Builds full name from first and last name with null safety
+     * Maps application status to decision format expected by SQS consumer
      */
-    private String buildFullName(String firstName, String lastName) {
-        if (firstName == null && lastName == null) {
-            return "Cliente";
-        }
-        if (firstName == null) {
-            return lastName.trim();
-        }
-        if (lastName == null) {
-            return firstName.trim();
-        }
-        return (firstName.trim() + " " + lastName.trim()).trim();
+    private String mapStatusToDecision(String status) {
+        return switch (status.toLowerCase()) {
+            case "aprobada", "approved" -> "APROBADA";
+            case "rechazada", "rejected" -> "RECHAZADA";
+            case "pendiente de revision", "revision manual", "manual review" -> "REVISION_MANUAL";
+            default -> status.toUpperCase();
+        };
     }
+
 }
