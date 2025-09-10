@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
@@ -74,7 +75,10 @@ public class SqsMessageConsumer {
 
                 for (Message message : messages) {
                     processMessage(message)
-                            .doOnSuccess(v -> log.info("Message {} processed successfully", message.messageId()))
+                            .doOnSuccess(v -> {
+                                log.info("Message {} processed successfully", message.messageId());
+                                deleteMessage(message);
+                            })
                             .doOnError(error -> log.error("Error processing message {}: {}", message.messageId(), error.getMessage()))
                             .onErrorResume(error -> Mono.empty()) // Continue with other messages
                             .block(); // Process sequentially
@@ -234,6 +238,21 @@ public class SqsMessageConsumer {
                         resultado.getSolicitudId()))
                 .doOnError(error -> log.error("Error processing automatic evaluation for application {}: {}",
                         resultado.getSolicitudId(), error.getMessage()));
+    }
+
+    private void deleteMessage(Message message) {
+        try {
+            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
+                    .queueUrl(RESULTS_QUEUE_URL)
+                    .receiptHandle(message.receiptHandle())
+                    .build();
+
+            sqsClient.deleteMessage(deleteRequest);
+            log.info("Message {} deleted successfully from queue", message.messageId());
+
+        } catch (Exception e) {
+            log.error("Error deleting message {}: {}", message.messageId(), e.getMessage());
+        }
     }
 
 
