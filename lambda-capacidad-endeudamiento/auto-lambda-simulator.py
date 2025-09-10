@@ -191,9 +191,28 @@ class AutoLambdaSimulator:
         return plan
     
     def delete_message(self, message):
-        """Elimina mensaje procesado de la cola (deshabilitado en dev)"""
-        # En desarrollo, no eliminamos mensajes para poder re-procesarlos
-        logger.info("🗑️ Eliminación de mensaje deshabilitada en desarrollo")
+        """Elimina mensaje procesado de la cola"""
+        try:
+            receipt_handle = message.get('ReceiptHandle')
+            if not receipt_handle:
+                logger.warning("⚠️ No se puede eliminar mensaje: falta ReceiptHandle")
+                return
+                
+            url = f"{self.localstack_url}/000000000000/{self.solicitudes_queue}"
+            params = {
+                "Action": "DeleteMessage",
+                "ReceiptHandle": receipt_handle
+            }
+            
+            response = requests.get(url, params=params)
+            
+            if response.status_code == 200:
+                logger.info("🗑️ Mensaje eliminado exitosamente de la cola")
+            else:
+                logger.error(f"❌ Error eliminando mensaje: {response.status_code}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error eliminando mensaje: {e}")
                 
     def run(self):
         """Ejecuta el simulador en loop continuo"""
