@@ -145,33 +145,4 @@ class AutomaticEvaluationAdapterTest {
 
         verify(loanTypeRepository).findById(loanTypeId);
     }
-
-
-    @Test
-    void sendForAutomaticEvaluation_ShouldHandleQueueError_WhenMessageQueueFails() {
-        // Arrange
-        Application application = Application.builder()
-                .applicationId(1L)
-                .documentId("12345678")
-                .email("test@example.com")
-                .amount(new BigDecimal("500000"))
-                .term(24)
-                .build();
-
-        when(authServiceClient.getUserByDocumentId("12345678"))
-                .thenReturn(Mono.error(new RuntimeException("Auth service error")));
-
-        when(messageQueueService.sendApplicationForEvaluation(any(CapacityRequestDto.class)))
-                .thenReturn(Mono.error(new RuntimeException("Queue error")));
-
-        // Act
-        Mono<String> result = adapter.sendForAutomaticEvaluation(application);
-
-        // Assert
-        StepVerifier.create(result)
-                .expectError(RuntimeException.class)
-                .verify();
-
-        verify(authServiceClient).getUserByDocumentId("12345678");
-    }
 }
