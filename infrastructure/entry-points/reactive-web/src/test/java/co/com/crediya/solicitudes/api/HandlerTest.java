@@ -4,13 +4,18 @@ import co.com.crediya.solicitudes.api.dto.ApplicationResponse;
 import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
 import co.com.crediya.solicitudes.api.exceptions.ValidationException;
 import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
+import co.com.crediya.solicitudes.api.mapper.CapacityCalculationMapper;
 import co.com.crediya.solicitudes.api.mapper.PageResponseMapper;
+import co.com.crediya.solicitudes.api.mapper.UpdateApplicationStatusMapper;
 import co.com.crediya.solicitudes.api.validator.RequestValidator;
 import co.com.crediya.solicitudes.model.application.Application;
+import co.com.crediya.solicitudes.model.capacity.gateways.CapacityResultCacheGateway;
 import co.com.crediya.solicitudes.model.common.PageRequest;
 import co.com.crediya.solicitudes.model.common.PageResponse;
 import co.com.crediya.solicitudes.model.loantype.LoanTypeEnum;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
+import co.com.crediya.solicitudes.usecase.application.UpdateApplicationStatusUseCase;
+import co.com.crediya.solicitudes.usecase.capacity.CapacityCalculationUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,9 +59,34 @@ class HandlerTest {
 
     private Handler handler;
 
+    @Mock
+    private UpdateApplicationStatusUseCase updateApplicationStatusUseCase;
+
+    @Mock
+    private UpdateApplicationStatusMapper updateApplicationStatusMapper;
+
+    @Mock
+    private CapacityCalculationUseCase capacityCalculationUseCase;
+
+    @Mock
+    private CapacityResultCacheGateway capacityResultCache;
+
+    @Mock
+    private CapacityCalculationMapper capacityCalculationMapper;
+
     @BeforeEach
     void setUp() {
-        handler = new Handler(applicationUseCase, applicationDtoMapper, pageResponseMapper, requestValidator);
+        handler = new Handler(
+            applicationUseCase, 
+            updateApplicationStatusUseCase,
+            applicationDtoMapper, 
+            pageResponseMapper, 
+            requestValidator,
+            updateApplicationStatusMapper,
+            capacityCalculationUseCase,
+            capacityResultCache,
+            capacityCalculationMapper
+        );
     }
 
     static Stream<Arguments> validApplicationData() {
@@ -249,7 +279,7 @@ class HandlerTest {
                 .build();
 
         ServerRequest serverRequest = MockServerRequest.builder().build();
-        
+
         PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
         PageResponse<Application> pageResponse = PageResponse.of(List.of(app1, app2), pageRequest, 2L);
         Map<String, Object> expectedResponse = Map.of(
@@ -284,7 +314,7 @@ class HandlerTest {
     void getAllApplicationsShouldReturnEmptyListWhenNoApplicationsExist() {
         // Arrange
         ServerRequest serverRequest = MockServerRequest.builder().build();
-        
+
         PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
         PageResponse<Application> emptyPageResponse = PageResponse.of(List.of(), pageRequest, 0L);
         Map<String, Object> emptyResponse = Map.of(

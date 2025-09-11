@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:latest
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+    environment:
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LAMBDA_EXECUTOR=docker
+      - LAMBDA_REMOTE_DOCKER=0
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+    networks:
+      - crediya-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - crediya-network
+
+networks:
+  crediya-network:
+    driver: bridge

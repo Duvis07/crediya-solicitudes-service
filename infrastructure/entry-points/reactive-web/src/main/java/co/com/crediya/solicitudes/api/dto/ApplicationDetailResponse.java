@@ -10,37 +10,41 @@ import java.math.BigDecimal;
 @Builder
 public class ApplicationDetailResponse {
     
-    // Campos principales de la solicitud
-    @JsonProperty("monto")
+    // Application ID
+    @JsonProperty("application_id")
+    private final Long applicationId;
+    
+    // Main application fields
+    @JsonProperty("amount")
     private final BigDecimal amount;
     
-    @JsonProperty("plazo")
+    @JsonProperty("term")
     private final Integer term;
     
-    @JsonProperty("estado_solicitud")
+    @JsonProperty("application_status")
     private final String applicationState;
     
-    // Información del cliente
-    @JsonProperty("documento_id")
+    // Client information
+    @JsonProperty("document_id")
     private final String documentId;
     
     @JsonProperty("email")
     private final String email;
     
-    @JsonProperty("nombre")
+    @JsonProperty("full_name")
     private final String fullName;
     
-    @JsonProperty("salario_base")
+    @JsonProperty("base_salary")
     private final BigDecimal baseSalary;
     
-    // Información del préstamo
-    @JsonProperty("tipo_prestamo")
+    // Loan information
+    @JsonProperty("loan_type_name")
     private final String loanTypeName;
     
-    @JsonProperty("tasa_interes")
+    @JsonProperty("interest_rate")
     private final BigDecimal interestRate;
     
-    // Cálculo financiero
-    @JsonProperty("deuda_total_mensual_solicitudes_aprobadas")
+    // Financial calculation
+    @JsonProperty("total_monthly_debt_approved_applications")
     private final BigDecimal totalMonthlyDebt;
 }

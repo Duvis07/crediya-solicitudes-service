@@ -53,4 +53,13 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
         return applicationEntityRepository.findByDocumentIdAndStateId(documentId, stateId)
                 .map(applicationMapper::toDomain);
     }
+
+    @Override
+    public Mono<Application> findById(Long applicationId) {
+        log.debug("Finding application by ID: {}", applicationId);
+        return applicationEntityRepository.findById(applicationId)
+                .map(applicationMapper::toDomain)
+                .doOnSuccess(app -> log.debug("Found application: {}", applicationId))
+                .doOnError(error -> log.error("Error finding application {}: {}", applicationId, error.getMessage()));
+    }
 }

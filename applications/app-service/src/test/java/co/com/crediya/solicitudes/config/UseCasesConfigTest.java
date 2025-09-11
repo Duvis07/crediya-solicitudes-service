@@ -1,7 +1,9 @@
 package co.com.crediya.solicitudes.config;
 
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
+import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import co.com.crediya.solicitudes.model.client.gateways.ClientValidationRepository;
+import co.com.crediya.solicitudes.model.lambda.gateways.ManualNotificationRepository;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
@@ -57,6 +59,16 @@ class UseCasesConfigTest {
         @Bean
         public ClientValidationRepository clientValidationRepository() {
             return Mockito.mock(ClientValidationRepository.class);
+        }
+
+        @Bean
+        public CapacityEvaluationRepository capacityEvaluationRepository() {
+            return Mockito.mock(CapacityEvaluationRepository.class);
+        }
+
+        @Bean
+        public ManualNotificationRepository manualNotificationRepository() {
+            return Mockito.mock(ManualNotificationRepository.class);
         }
 
         @Bean

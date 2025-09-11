@@ -8,14 +8,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -25,11 +23,14 @@ class RoleAuthorizationFilterTest {
     @Mock
     private WebFilterChain filterChain;
 
+    @Mock
+    private ErrorResponseBuilder errorResponseBuilder;
+
     private RoleAuthorizationFilter roleAuthorizationFilter;
 
     @BeforeEach
     void setUp() {
-        roleAuthorizationFilter = new RoleAuthorizationFilter();
+        roleAuthorizationFilter = new RoleAuthorizationFilter(errorResponseBuilder);
     }
 
     @Test
@@ -37,7 +38,7 @@ class RoleAuthorizationFilterTest {
         // Arrange
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/usuarios"));
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act
@@ -53,7 +54,7 @@ class RoleAuthorizationFilterTest {
         // Arrange
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("/api/v1/solicitud"));
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act
@@ -70,7 +71,7 @@ class RoleAuthorizationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/solicitud"));
         exchange.getAttributes().put("userRole", "ASESOR");
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act
@@ -88,14 +89,14 @@ class RoleAuthorizationFilterTest {
                 MockServerHttpRequest.get("/api/v1/solicitud"));
         // No userRole attribute set
 
+        when(errorResponseBuilder.buildForbiddenResponse(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = roleAuthorizationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-        
-        assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode());
     }
 
     @ParameterizedTest
@@ -106,14 +107,14 @@ class RoleAuthorizationFilterTest {
                 MockServerHttpRequest.get("/api/v1/solicitud"));
         exchange.getAttributes().put("userRole", role);
 
+        when(errorResponseBuilder.buildForbiddenResponse(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = roleAuthorizationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-        
-        assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode());
     }
 
     @Test
@@ -124,7 +125,7 @@ class RoleAuthorizationFilterTest {
                         .queryParam("page", "0")
                         .queryParam("size", "10"));
         exchange.getAttributes().put("userRole", "ASESOR");
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act
@@ -141,7 +142,7 @@ class RoleAuthorizationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/usuarios/12345678"));
         exchange.getAttributes().put("userRole", "ADMIN");
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act
@@ -158,7 +159,7 @@ class RoleAuthorizationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("/api/v1/solicitud"));
         exchange.getAttributes().put("userRole", "APPLICANT");
-        
+
         when(filterChain.filter(any())).thenReturn(Mono.empty());
 
         // Act

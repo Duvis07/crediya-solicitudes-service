@@ -25,12 +25,14 @@ import java.util.List;
 public class JwtAuthenticationFilter implements WebFilter {
 
     private final SecretKey secretKey;
+    private final JwtUtils jwtUtils;
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String USER_ID_ATTRIBUTE = "userId";
     private static final String USER_ROLE_ATTRIBUTE = "userRole";
 
-    public JwtAuthenticationFilter(@Value("${jwt.secret}") String secret) {
+    public JwtAuthenticationFilter(@Value("${jwt.secret}") String secret, JwtUtils jwtUtils) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.jwtUtils = jwtUtils;
     }
 
     @Override
@@ -39,7 +41,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().value();
         
         // Skip JWT validation for non-protected endpoints
-        if (isPublicEndpoint(path)) {
+        if (isPublicEndpoint(path, exchange)) {
             return chain.filter(exchange);
         }
 
@@ -47,7 +49,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             log.warn("Missing or invalid Authorization header for path: {}", path);
-            return unauthorized(exchange);
+            return jwtUtils.unauthorized(exchange, "Missing or invalid Authorization header");
         }
 
         String token = authHeader.substring(BEARER_PREFIX.length());
@@ -73,8 +75,15 @@ public class JwtAuthenticationFilter implements WebFilter {
                             .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
                 })
                 .onErrorResume(error -> {
-                    log.error("JWT validation failed for path {}: {}", path, error.getMessage());
-                    return unauthorized(exchange);
+                    // Only log JWT-specific errors, not business logic errors
+                    if (jwtUtils.isJwtRelatedError(error)) {
+                        String errorMessage = jwtUtils.getJwtErrorMessage(error);
+                        log.error("JWT validation failed for path {}: {}", path, error.getMessage());
+                        return jwtUtils.unauthorized(exchange, errorMessage);
+                    } else {
+                        // Let business logic errors propagate to GlobalExceptionHandler
+                        return Mono.error(error);
+                    }
                 });
     }
 
@@ -86,15 +95,17 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .getBody());
     }
 
-    private boolean isPublicEndpoint(String path) {
+    private boolean isPublicEndpoint(String path, ServerWebExchange exchange) {
         return path.startsWith("/swagger") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/webjars") ||
-               path.equals("/actuator/health");
+               path.equals("/actuator/health") ||
+               (path.equals("/api/v1/solicitud") && isPostRequest(exchange)) ||
+               (path.equals("/api/v1/calcular-capacidad") && isPostRequest(exchange));
+    }
+    
+    private boolean isPostRequest(ServerWebExchange exchange) {
+        return "POST".equals(exchange.getRequest().getMethod().name());
     }
 
-    private Mono<Void> unauthorized(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
-    }
 }

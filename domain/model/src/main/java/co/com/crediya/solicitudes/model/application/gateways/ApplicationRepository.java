@@ -9,7 +9,12 @@ import java.util.List;
 
 public interface ApplicationRepository {
     Mono<Application> save(Application application);
+
     Flux<Application> findByStateInWithPagination(List<Long> stateIds, PageRequest pageRequest);
+
     Mono<Long> countByStateIn(List<Long> stateIds);
+
     Flux<Application> findByDocumentIdAndStateId(String documentId, Long stateId);
+
+    Mono<Application> findById(Long applicationId);
 }
