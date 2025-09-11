@@ -56,7 +56,8 @@ public class ManualEmailNotificationService extends BaseEmailService {
     private String processManualRejectionTemplate(String htmlContent, String nombreCompleto, String solicitudId, String motivo) {
         htmlContent = htmlContent.replace(PLACEHOLDER_NOMBRE, nombreCompleto != null ? nombreCompleto : DEFAULT_CUSTOMER);
         htmlContent = htmlContent.replace(PLACEHOLDER_SOLICITUD, solicitudId != null ? solicitudId : "N/A");
-        htmlContent = htmlContent.replace("{{motivo}}", motivo != null && !motivo.isEmpty() ? motivo : "Criterios de evaluación crediticia no cumplidos");
+        htmlContent = htmlContent.replace("{{estado}}", "RECHAZADA");
+        htmlContent = htmlContent.replace("{{motivo}}", motivo != null && !motivo.isEmpty() ? motivo : "Rechazada");
         // Clean up any remaining placeholders
         htmlContent = htmlContent.replaceAll(PLACEHOLDER_CLEANUP, "");
         return htmlContent;

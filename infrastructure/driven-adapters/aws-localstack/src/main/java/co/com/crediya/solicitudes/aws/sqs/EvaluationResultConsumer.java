@@ -160,7 +160,7 @@ public class EvaluationResultConsumer {
                     resultado.getEmail(),
                     resultado.getNombreCompleto(),
                     resultado.getSolicitudId(),
-                    resultado.getReason() != null ? resultado.getReason() : resultado.getComments()
+                    resultado.getComments() != null ? resultado.getComments() : resultado.getReason()
             );
             default -> manualEmailNotificationService.sendManualReviewNotification(
                     resultado.getEmail(),
