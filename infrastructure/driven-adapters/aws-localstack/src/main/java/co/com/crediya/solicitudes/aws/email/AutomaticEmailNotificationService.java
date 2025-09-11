@@ -12,9 +12,9 @@ import java.util.Map;
 
 @Slf4j
 @Service
-public class EmailNotificationService extends BaseEmailService {
+public class AutomaticEmailNotificationService extends BaseEmailService {
 
-    public EmailNotificationService(JavaMailSender mailSender) {
+    public AutomaticEmailNotificationService(JavaMailSender mailSender) {
         super(mailSender);
     }
 
@@ -80,7 +80,6 @@ public class EmailNotificationService extends BaseEmailService {
     }
 
 
-
     /**
      * Processes approval email template with dynamic content
      */
@@ -136,7 +135,6 @@ public class EmailNotificationService extends BaseEmailService {
         htmlContent = htmlContent.replaceAll("\\{\\{[^}]*\\}\\}", "");
         return htmlContent;
     }
-
 
 
 }

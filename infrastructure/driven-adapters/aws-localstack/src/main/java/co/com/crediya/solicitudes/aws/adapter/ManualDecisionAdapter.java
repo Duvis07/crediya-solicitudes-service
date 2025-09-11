@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.aws.adapter;
 
-import co.com.crediya.solicitudes.aws.sqs.SqsService;
+import co.com.crediya.solicitudes.aws.sqs.MessageQueueService;
 import co.com.crediya.solicitudes.aws.utils.UserNameUtils;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
@@ -13,9 +13,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ManualNotificationAdapter implements ManualNotificationRepository {
+public class ManualDecisionAdapter implements ManualNotificationRepository {
 
-    private final SqsService sqsService;
+    private final MessageQueueService messageQueueService;
     private final ApplicationRepository applicationRepository;
     private final AuthServiceClient authServiceClient;
 
@@ -37,7 +37,7 @@ public class ManualNotificationAdapter implements ManualNotificationRepository {
                                 String decision = mapStatusToDecision(newStatus);
                                 log.info("Sending manual notification with: applicationId={}, fullName={}, newStatus={} -> decision={}", 
                                         application.getApplicationId(), fullName, newStatus, decision);
-                                return sqsService.sendManualNotificationWithUserData(
+                                return messageQueueService.sendManualNotificationWithUserData(
                                         application.getApplicationId(),
                                         application.getDocumentId(),
                                         application.getEmail(),

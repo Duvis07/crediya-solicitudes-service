@@ -1,6 +1,6 @@
 package co.com.crediya.solicitudes.aws.adapter;
 
-import co.com.crediya.solicitudes.aws.sqs.SqsService;
+import co.com.crediya.solicitudes.aws.sqs.MessageQueueService;
 import co.com.crediya.solicitudes.aws.utils.UserNameUtils;
 import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;
 import co.com.crediya.solicitudes.model.application.Application;
@@ -20,16 +20,16 @@ import java.time.LocalDateTime;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
+public class AutomaticEvaluationAdapter implements CapacityEvaluationRepository {
 
-    private static final BigDecimal DEFAULT_INTEREST_RATE = BigDecimal.valueOf(12.0);
-    private static final BigDecimal DEFAULT_BASE_SALARY = BigDecimal.valueOf(2000000);
+    private static final BigDecimal DEFAULT_INTEREST_RATE = new BigDecimal("12.5");
+    private static final BigDecimal DEFAULT_BASE_SALARY = new BigDecimal("2000000");
     private static final String DEFAULT_LOAN_TYPE = "PERSONAL";
 
-    private final SqsService sqsService;
+    private final MessageQueueService messageQueueService;
     private final ApplicationRepository applicationRepository;
-    private final LoanTypeRepository loanTypeRepository;
     private final StateRepository stateRepository;
+    private final LoanTypeRepository loanTypeRepository;
     private final AuthServiceClient authServiceClient;
 
     @Override
@@ -60,7 +60,7 @@ public class CapacityEvaluationAdapter implements CapacityEvaluationRepository {
                             application.getDocumentId(), error.getMessage());
                     return Mono.error(new RuntimeException("Unable to retrieve user information for application processing", error));
                 })
-                .flatMap(sqsService::sendApplicationForEvaluation)
+                .flatMap(messageQueueService::sendApplicationForEvaluation)
                 .doOnSuccess(messageId -> log.info("Application {} sent to SQS with messageId: {}", 
                     application.getApplicationId(), messageId))
                 .doOnError(error -> log.error("Error sending application {} to SQS: {}", 

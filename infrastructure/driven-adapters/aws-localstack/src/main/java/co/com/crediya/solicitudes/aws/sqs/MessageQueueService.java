@@ -18,7 +18,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SqsService {
+public class MessageQueueService {
 
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper;
@@ -132,6 +132,4 @@ public class SqsService {
                 .doOnSuccess(messageId -> log.info("Manual notification sent to SQS with ID: {}", messageId))
                 .doOnError(error -> log.error("Error sending manual notification to SQS: {}", error.getMessage()));
     }
-
-
 }
