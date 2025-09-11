@@ -178,18 +178,22 @@
             <p class="subtitle">Su Socio Financiero de Confianza</p>
         </div>
         
+        <div class="success-banner">
+            🎉 ¡FELICITACIONES! Su préstamo ha sido APROBADO automáticamente
+        </div>
+        
         <div class="content">
-            <div class="success-banner">
-                <h2 style="margin: 0; font-size: 22px;">🎉 ¡FELICIDADES!</h2>
-                <p style="margin: 10px 0 0 0; font-size: 16px;">Su préstamo ha sido APROBADO</p>
+            <div class="greeting">
+                Estimado/a {{nombreCompleto}},
             </div>
             
-            <p style="font-size: 16px; margin-bottom: 20px;">Estimado/a {{nombreCompleto}},</p>
+            <div class="message">
+                Nos complace informarle que su solicitud de préstamo ha sido <strong>APROBADA</strong> 
+                tras pasar exitosamente nuestra evaluación automática de capacidad crediticia.
+            </div>
             
-            <p style="font-size: 16px; margin-bottom: 25px;">Nos complace informarle que su solicitud de préstamo ha sido <strong style="color: #28a745;">APROBADA</strong>. Agradecemos su confianza en CrediYa  Services.</p>
-            
-            <div class="info-box">
-                <h3>📋 DETALLES DEL PRÉSTAMO</h3>
+            <div class="details-box">
+                <div class="details-title">DETALLES DEL PRÉSTAMO</div>
                 <div class="detail-row">
                     <span class="detail-label">ID de Solicitud:</span>
                     <span class="detail-value">{{solicitudId}}</span>
@@ -232,9 +236,9 @@
             <div class="next-steps">
                 <h3>📋 PRÓXIMOS PASOS</h3>
                 <ol>
-                    <li>Un asesor financiero se comunicará con usted dentro de las próximas 24 horas</li>
-                    <li>Por favor prepare la documentación requerida</li>
-                    <li>Una vez completado el proceso, los fondos serán desembolsados</li>
+                    <li>Un asesor financiero se comunicará con usted dentro de las próximas 24 horas para finalizar el proceso</li>
+                    <li>Prepare la documentación requerida para la formalización</li>
+                    <li>Una vez completada la documentación, procederemos con el desembolso automático</li>
                 </ol>
             </div>
         </div>

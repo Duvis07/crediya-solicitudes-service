@@ -41,23 +41,23 @@
         .content {
             padding: 40px 30px;
         }
-        .decision-notice {
+        .status-banner {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 25px;
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #fef2f2;
-            border-radius: 8px;
-            border: 2px solid #fecaca;
+            font-size: 20px;
+            font-weight: bold;
         }
-        .decision-notice h2 {
-            color: #dc2626;
-            font-size: 24px;
-            margin: 0 0 10px 0;
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c5aa0;
         }
-        .decision-notice p {
-            color: #7f1d1d;
+        .message {
             font-size: 16px;
-            margin: 0;
+            margin-bottom: 25px;
+            line-height: 1.7;
         }
         .details-box {
             background-color: #f8fafc;
@@ -66,13 +66,18 @@
             padding: 25px;
             margin: 30px 0;
         }
-        .details-box h3 {
-            color: #1e40af;
-            margin: 0 0 20px 0;
+        .details-title {
             font-size: 18px;
-            text-align: center;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 10px;
+            font-weight: bold;
+            color: #2c5aa0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .details-title::before {
+            content: "📋";
+            margin-right: 10px;
+            font-size: 20px;
         }
         .detail-row {
             display: flex;
@@ -190,24 +195,29 @@
             <p class="subtitle">Su Socio Financiero de Confianza</p>
         </div>
         
+        <div class="status-banner">
+            Resultado de Evaluación Automática
+        </div>
+        
         <div class="content">
-            <div class="decision-banner">
-                <h2 style="margin: 0; font-size: 22px;">📋 DECISIÓN DE SOLICITUD</h2>
-                <p style="margin: 10px 0 0 0; font-size: 16px;">Gracias por su interés en nuestros servicios</p>
+            <div class="greeting">
+                Estimado/a {{nombreCompleto}},
             </div>
             
-            <p style="font-size: 16px; margin-bottom: 20px;">Estimado/a {{nombreCompleto}},</p>
-            
-            <p style="font-size: 16px; margin-bottom: 25px;">Gracias por su interés en CrediYa  Services. Después de una cuidadosa revisión de su solicitud de préstamo, lamentamos informarle que no podemos aprobar su solicitud en este momento.</p>
+            <div class="message">
+                Después de procesar automáticamente su solicitud de préstamo mediante nuestro sistema 
+                de evaluación crediticia, lamentamos informarle que no cumple con los criterios mínimos 
+                requeridos para la aprobación en este momento.
+            </div>
             
             <div class="details-box">
-                <h3>Detalles de la Solicitud</h3>
+                <div class="details-title">DETALLES DE LA DECISIÓN</div>
                 <div class="detail-row">
                     <span class="detail-label">ID de Solicitud:</span>
                     <span class="detail-value">{{solicitudId}}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Decisión:</span>
+                    <span class="detail-label">Estado:</span>
                     <span class="detail-value status-declined">RECHAZADA</span>
                 </div>
                 <div class="detail-row">
@@ -217,17 +227,17 @@
             </div>
             
             <div class="opportunities">
-                <h3>🔄 Oportunidades Futuras</h3>
+                <h3>OPORTUNIDADES FUTURAS</h3>
                 <ul>
+                    <li>Puede solicitar una revisión manual contactando a nuestros asesores</li>
                     <li>Puede volver a aplicar después de 30 días</li>
-                    <li>Considere mejorar su perfil crediticio</li>
-                    <li>Contacte a nuestros asesores para orientación personalizada</li>
+                    <li>Considere mejorar su capacidad de pago o reducir deudas existentes</li>
                     <li>Explore nuestros recursos de educación financiera</li>
                 </ul>
             </div>
             
             <div class="encouragement">
-                <p>💪 Creemos en su potencial financiero y le animamos a contactar a nuestros asesores para obtener orientación sobre cómo mejorar su elegibilidad para futuras solicitudes.</p>
+                <p>💪 Esta evaluación automática se basa en criterios técnicos. Si considera que hay información adicional que debemos evaluar, puede solicitar una revisión manual con uno de nuestros especialistas.</p>
             </div>
         </div>
 
