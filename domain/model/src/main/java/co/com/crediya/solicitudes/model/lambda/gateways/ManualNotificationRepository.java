@@ -1,4 +1,4 @@
-package co.com.crediya.solicitudes.usecase.gateways;
+package co.com.crediya.solicitudes.model.lambda.gateways;
 
 import reactor.core.publisher.Mono;
 

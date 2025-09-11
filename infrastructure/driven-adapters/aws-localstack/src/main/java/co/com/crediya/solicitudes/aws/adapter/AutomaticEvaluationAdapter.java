@@ -6,6 +6,7 @@ import co.com.crediya.solicitudes.aws.dto.CapacityRequestDto;
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
+import co.com.crediya.solicitudes.model.lambda.CapacityCalculationRequest;
 import co.com.crediya.solicitudes.model.loantype.gateways.LoanTypeRepository;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import co.com.crediya.solicitudes.webclient.AuthServiceClient;
@@ -97,6 +98,28 @@ public class AutomaticEvaluationAdapter implements CapacityEvaluationRepository 
                             applicationId, error.getMessage()));
             })
             .switchIfEmpty(Mono.error(new IllegalArgumentException("Application not found: " + applicationId)));
+    }
+
+    @Override
+    public Mono<String> sendForCapacityCalculation(CapacityCalculationRequest request) {
+        log.info("Sending capacity calculation request for document: {}", request.getDocumentoIdentidad());
+
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        
+
+        var capacityRequestDto = co.com.crediya.solicitudes.aws.dto.CapacityRequestDto.builder()
+                .solicitudId("CAPACITY_CALC_" + timestamp)
+                .documentoIdentidad(request.getDocumentoIdentidad())
+                .monto(request.getMonto())
+                .plazoMeses(request.getPlazoMeses())
+                .tasaInteresAnual(request.getTasaInteresAnual())
+                .salarioBase(request.getSalarioBase())
+                .build();
+
+        return messageQueueService.sendApplicationForEvaluation(capacityRequestDto)
+                .doOnSuccess(messageId -> log.info("Capacity calculation request sent to SQS with messageId: {}", messageId))
+                .doOnError(error -> log.error("Error sending capacity calculation request to SQS: {}", error.getMessage()))
+                .map(messageId -> timestamp); // Return the timestamp instead of messageId so Handler can wait for it
     }
 
     @Override

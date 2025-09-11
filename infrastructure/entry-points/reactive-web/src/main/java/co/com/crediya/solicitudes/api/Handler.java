@@ -1,15 +1,16 @@
 package co.com.crediya.solicitudes.api;
 
-import co.com.crediya.solicitudes.api.dto.ApplicationCreatedResponse;
-import co.com.crediya.solicitudes.api.dto.CreateApplicationRequest;
-import co.com.crediya.solicitudes.api.dto.UpdateApplicationStatusRequest;
+import co.com.crediya.solicitudes.api.dto.*;
 import co.com.crediya.solicitudes.api.mapper.ApplicationDtoMapper;
+import co.com.crediya.solicitudes.api.mapper.CapacityCalculationMapper;
 import co.com.crediya.solicitudes.api.mapper.PageResponseMapper;
 import co.com.crediya.solicitudes.api.mapper.UpdateApplicationStatusMapper;
 import co.com.crediya.solicitudes.api.utils.PaginationUtils;
 import co.com.crediya.solicitudes.api.validator.RequestValidator;
+import co.com.crediya.solicitudes.model.capacity.gateways.CapacityResultCacheGateway;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
 import co.com.crediya.solicitudes.usecase.application.UpdateApplicationStatusUseCase;
+import co.com.crediya.solicitudes.usecase.capacity.CapacityCalculationUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -17,6 +18,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +33,9 @@ public class Handler {
     private final PageResponseMapper pageResponseMapper;
     private final RequestValidator requestValidator;
     private final UpdateApplicationStatusMapper updateApplicationStatusMapper;
+    private final CapacityCalculationUseCase capacityCalculationUseCase;
+    private final CapacityResultCacheGateway capacityResultCache;
+    private final CapacityCalculationMapper capacityCalculationMapper;
 
     public Mono<ServerResponse> createApplication(ServerRequest request) {
         return request.bodyToMono(CreateApplicationRequest.class)
@@ -76,7 +83,7 @@ public class Handler {
                                                         validatedRequest.getStatus(),
                                                         validatedRequest.getComments())
                                                 .doOnSuccess(result ->
-                                                        log.info("Application status updated manually to: {} for application ID: {} with SQS notification sent", 
+                                                        log.info("Application status updated manually to: {} for application ID: {} with SQS notification sent",
                                                                 validatedRequest.getStatus(), applicationId))
                                                 .map(result -> updateApplicationStatusMapper.toResponse(
                                                         result,
@@ -93,5 +100,56 @@ public class Handler {
                     return Mono.error(error);
                 });
     }
+
+    public Mono<ServerResponse> calculateCapacity(ServerRequest request) {
+        log.info("Processing capacity calculation request");
+
+        return request.bodyToMono(CalculateCapacityRequest.class)
+                .doOnNext(req -> log.info("Received capacity calculation request for document: {}", req.getDocumentoIdentidad()))
+                .flatMap(req -> requestValidator.validate(req, "calculateCapacityRequest"))
+                .map(capacityCalculationMapper::mapToUseCaseRequest)
+                .flatMap(capacityCalculationUseCase::sendForCapacityCalculation)
+                .flatMap(messageId -> {
+                    log.info("Waiting for capacity calculation result with messageId: {}", messageId);
+                    return capacityResultCache.waitForResult(messageId, Duration.ofSeconds(25))
+                            .flatMap(result -> {
+                                CalculateCapacityResponse response = CalculateCapacityResponse.builder()
+                                        .decision(result.getDecision())
+                                        .motivo(result.getMotivo())
+                                        .capacidadDisponible(result.getCapacidadDisponible())
+                                        .cuotaCalculada(result.getCuotaCalculada())
+                                        .montoAprobado(result.getMontoAprobado())
+                                        .tasaInteresAnual(result.getTasaInteresAnual())
+                                        .plazoMeses(result.getPlazoMeses())
+                                        .cuotaMensual(result.getCuotaMensual())
+                                        .planPagos(result.getPlanPagos())
+                                        .build();
+
+                                return ServerResponse.ok()
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(response);
+                            })
+                            .onErrorResume(timeoutError -> {
+                                log.warn("Timeout waiting for capacity calculation result: {}", timeoutError.getMessage());
+                                return ServerResponse.status(408) // Request Timeout
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(Map.of(
+                                                "error", "Request timeout",
+                                                "message", "Capacity calculation is taking longer than expected. Please try again.",
+                                                "messageId", messageId
+                                        ));
+                            });
+                })
+                .onErrorResume(error -> {
+                    log.error("Error processing capacity calculation: {}", error.getMessage());
+                    return ServerResponse.badRequest()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of(
+                                    "error", "Error processing request",
+                                    "message", error.getMessage()
+                            ));
+                });
+    }
+
 
 }

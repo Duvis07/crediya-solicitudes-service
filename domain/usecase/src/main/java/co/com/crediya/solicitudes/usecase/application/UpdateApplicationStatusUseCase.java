@@ -8,7 +8,7 @@ import co.com.crediya.solicitudes.model.exceptions.InvalidStateTransitionExcepti
 import co.com.crediya.solicitudes.model.exceptions.StateNotFoundException;
 import co.com.crediya.solicitudes.model.state.State;
 import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
-import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
+import co.com.crediya.solicitudes.model.lambda.gateways.ManualNotificationRepository;
 import co.com.crediya.solicitudes.usecase.utils.ApplicationStateTransitionUtils;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;

@@ -1,5 +1,6 @@
 package co.com.crediya.solicitudes.aws.sqs;
 
+import co.com.crediya.solicitudes.aws.cache.CapacityResultCache;
 import co.com.crediya.solicitudes.aws.dto.EvaluationResultDto;
 import co.com.crediya.solicitudes.aws.email.AutomaticEmailNotificationService;
 import co.com.crediya.solicitudes.model.exceptions.MessageProcessingException;
@@ -34,6 +35,7 @@ public class EvaluationResultConsumer {
     private final CapacityEvaluationRepository capacityEvaluationRepository;
     private final AutomaticEmailNotificationService automaticEmailNotificationService;
     private final ManualEmailNotificationService manualEmailNotificationService;
+    private final CapacityResultCache capacityResultCache;
 
     private static final String RESULTS_QUEUE_URL = "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue";
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -186,6 +188,12 @@ public class EvaluationResultConsumer {
     }
 
     private Mono<Void> processAutomaticEvaluation(EvaluationResultDto resultado) {
+        // Check if this is a capacity calculation request (not a real application)
+        if (resultado.getSolicitudId().startsWith("CAPACITY_CALC_")) {
+            log.info("Processing capacity calculation result: {}", resultado.getSolicitudId());
+            return processCapacityCalculationResult(resultado);
+        }
+        
         return capacityEvaluationRepository.processEvaluationResult(
                         resultado.getSolicitudId(),
                         resultado.getDecision(),
@@ -194,7 +202,6 @@ public class EvaluationResultConsumer {
                         resultado.getCuotaCalculada()
                 )
                 .flatMap(application -> {
-                    // Send email notification based on decision with retry logic
                     Mono<Void> emailMono = switch (resultado.getDecision()) {
                         case "APROBADO" -> automaticEmailNotificationService.sendPaymentPlanNotification(
                                 resultado.getEmail(),
@@ -231,6 +238,20 @@ public class EvaluationResultConsumer {
                         resultado.getSolicitudId()))
                 .doOnError(error -> log.error("Error processing automatic evaluation for application {}: {}",
                         resultado.getSolicitudId(), error.getMessage()));
+    }
+
+    private Mono<Void> processCapacityCalculationResult(EvaluationResultDto resultado) {
+        log.info("Capacity calculation completed - Decision: {}, Reason: {}", 
+                resultado.getDecision(), resultado.getMotivo());
+
+        String timestamp = resultado.getSolicitudId().replace("CAPACITY_CALC_", "");
+
+        capacityResultCache.storeResult(timestamp, resultado);
+        
+        log.info("Capacity calculation result stored in cache with key {}: Available={}, Monthly Payment={}, Decision={}", 
+                timestamp, resultado.getCapacidadDisponible(), resultado.getCuotaCalculada(), resultado.getDecision());
+        
+        return Mono.empty();
     }
 
     private void deleteMessage(Message message) {

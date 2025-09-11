@@ -3,7 +3,7 @@ package co.com.crediya.solicitudes.aws.adapter;
 import co.com.crediya.solicitudes.aws.sqs.MessageQueueService;
 import co.com.crediya.solicitudes.aws.utils.UserNameUtils;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
-import co.com.crediya.solicitudes.usecase.gateways.ManualNotificationRepository;
+import co.com.crediya.solicitudes.model.lambda.gateways.ManualNotificationRepository;
 import co.com.crediya.solicitudes.webclient.AuthServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

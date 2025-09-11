@@ -100,7 +100,8 @@ public class JwtAuthenticationFilter implements WebFilter {
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/webjars") ||
                path.equals("/actuator/health") ||
-               (path.equals("/api/v1/solicitud") && isPostRequest(exchange));
+               (path.equals("/api/v1/solicitud") && isPostRequest(exchange)) ||
+               (path.equals("/api/v1/calcular-capacidad") && isPostRequest(exchange));
     }
     
     private boolean isPostRequest(ServerWebExchange exchange) {

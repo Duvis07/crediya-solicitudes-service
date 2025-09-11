@@ -150,6 +150,10 @@ public class RouterRest {
                 .andRoute(PUT("/api/v1/solicitud/{id}")
                                 .and(accept(MediaType.APPLICATION_JSON))
                                 .and(contentType(MediaType.APPLICATION_JSON)),
-                        handler::updateApplicationStatus);
+                        handler::updateApplicationStatus)
+                .andRoute(POST("/api/v1/calcular-capacidad")
+                                .and(accept(MediaType.APPLICATION_JSON))
+                                .and(contentType(MediaType.APPLICATION_JSON)),
+                        handler::calculateCapacity);
     }
 }

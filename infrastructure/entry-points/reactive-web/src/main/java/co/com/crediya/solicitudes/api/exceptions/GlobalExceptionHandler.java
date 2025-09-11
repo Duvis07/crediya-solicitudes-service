@@ -11,6 +11,8 @@ import co.com.crediya.solicitudes.model.exceptions.InvalidStateTransitionExcepti
 import co.com.crediya.solicitudes.model.exceptions.InvalidTargetStatusException;
 import co.com.crediya.solicitudes.model.exceptions.EmailNotificationException;
 import co.com.crediya.solicitudes.model.exceptions.EmailTemplateException;
+import co.com.crediya.solicitudes.model.exceptions.CapacityCalculationTimeoutException;
+import co.com.crediya.solicitudes.model.exceptions.CapacityCalculationInterruptedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -62,6 +64,8 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         mappings.put(InvalidTargetStatusException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
         mappings.put(EmailNotificationException.class, ex -> new ErrorMappingResult(HttpStatus.INTERNAL_SERVER_ERROR, "Email notification failed: " + ex.getMessage(), null));
         mappings.put(EmailTemplateException.class, ex -> new ErrorMappingResult(HttpStatus.INTERNAL_SERVER_ERROR, "Email template error: " + ex.getMessage(), null));
+        mappings.put(CapacityCalculationTimeoutException.class, ex -> new ErrorMappingResult(HttpStatus.REQUEST_TIMEOUT, "Capacity calculation is taking longer than expected. Please try again.", null));
+        mappings.put(CapacityCalculationInterruptedException.class, ex -> new ErrorMappingResult(HttpStatus.INTERNAL_SERVER_ERROR, "Capacity calculation was interrupted. Please try again.", null));
         mappings.put(ValidationException.class, this::handleValidationException);
         mappings.put(NumberFormatException.class, ex -> new ErrorMappingResult(HttpStatus.BAD_REQUEST, INVALID_FORMAT_MESSAGE, null));
         mappings.put(ServerWebInputException.class, this::handleWebInputException);
