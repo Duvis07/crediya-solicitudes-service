@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
@@ -30,6 +29,9 @@ class JwtAuthenticationFilterTest {
 
     @Mock
     private WebFilterChain filterChain;
+    
+    @Mock
+    private JwtUtils jwtUtils;
 
     private JwtAuthenticationFilter jwtAuthenticationFilter;
     private SecretKey secretKey;
@@ -37,7 +39,7 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtAuthenticationFilter = new JwtAuthenticationFilter(JWT_SECRET);
+        jwtAuthenticationFilter = new JwtAuthenticationFilter(JWT_SECRET, jwtUtils);
         secretKey = Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -95,14 +97,14 @@ class JwtAuthenticationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/solicitud"));
 
+        when(jwtUtils.unauthorized(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = jwtAuthenticationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 
     @Test
@@ -112,14 +114,14 @@ class JwtAuthenticationFilterTest {
                 MockServerHttpRequest.get("/api/v1/solicitud")
                         .header(HttpHeaders.AUTHORIZATION, "Invalid token"));
 
+        when(jwtUtils.unauthorized(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = jwtAuthenticationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 
     @Test
@@ -129,14 +131,16 @@ class JwtAuthenticationFilterTest {
                 MockServerHttpRequest.get("/api/v1/solicitud")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.jwt.token"));
 
+        when(jwtUtils.isJwtRelatedError(any())).thenReturn(true);
+        when(jwtUtils.getJwtErrorMessage(any())).thenReturn("Invalid JWT token");
+        when(jwtUtils.unauthorized(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = jwtAuthenticationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 
     @Test
@@ -169,14 +173,16 @@ class JwtAuthenticationFilterTest {
                 MockServerHttpRequest.get("/api/v1/solicitud")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken));
 
+        when(jwtUtils.isJwtRelatedError(any())).thenReturn(true);
+        when(jwtUtils.getJwtErrorMessage(any())).thenReturn("JWT token expired");
+        when(jwtUtils.unauthorized(any(), any())).thenReturn(Mono.empty());
+
         // Act
         Mono<Void> result = jwtAuthenticationFilter.filter(exchange, filterChain);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 
     @Test

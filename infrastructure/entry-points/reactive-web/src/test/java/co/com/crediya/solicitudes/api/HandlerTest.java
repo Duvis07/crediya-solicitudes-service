@@ -249,7 +249,7 @@ class HandlerTest {
                 .build();
 
         ServerRequest serverRequest = MockServerRequest.builder().build();
-        
+
         PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
         PageResponse<Application> pageResponse = PageResponse.of(List.of(app1, app2), pageRequest, 2L);
         Map<String, Object> expectedResponse = Map.of(
@@ -284,7 +284,7 @@ class HandlerTest {
     void getAllApplicationsShouldReturnEmptyListWhenNoApplicationsExist() {
         // Arrange
         ServerRequest serverRequest = MockServerRequest.builder().build();
-        
+
         PageRequest pageRequest = PageRequest.of(0, 10, "createdAt", "desc");
         PageResponse<Application> emptyPageResponse = PageResponse.of(List.of(), pageRequest, 0L);
         Map<String, Object> emptyResponse = Map.of(

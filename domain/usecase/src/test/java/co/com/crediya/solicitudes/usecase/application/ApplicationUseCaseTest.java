@@ -2,6 +2,7 @@ package co.com.crediya.solicitudes.usecase.application;
 
 import co.com.crediya.solicitudes.model.application.Application;
 import co.com.crediya.solicitudes.model.application.gateways.ApplicationRepository;
+import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import co.com.crediya.solicitudes.model.exceptions.LoanTypeNotFoundException;
 import co.com.crediya.solicitudes.model.exceptions.ClientNotFoundException;
 import co.com.crediya.solicitudes.model.loantype.LoanType;
@@ -41,6 +42,9 @@ class ApplicationUseCaseTest {
     @Mock
     private ClientValidationRepository clientValidationRepository;
 
+    @Mock
+    private CapacityEvaluationRepository capacityEvaluationRepository;
+
     private ApplicationUseCase applicationUseCase;
 
     @BeforeEach
@@ -49,7 +53,8 @@ class ApplicationUseCaseTest {
                 applicationRepository,
                 loanTypeRepository,
                 stateRepository,
-                clientValidationRepository
+                clientValidationRepository,
+                capacityEvaluationRepository
         );
     }
 
@@ -85,6 +90,7 @@ class ApplicationUseCaseTest {
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.just(loanType));
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.just(state));
         when(applicationRepository.save(any(Application.class))).thenReturn(Mono.just(savedApplication));
+        when(capacityEvaluationRepository.isAutomaticValidationEnabled(1L)).thenReturn(Mono.just(false));
 
         // Act
         Mono<Application> result = applicationUseCase.createApplication(
@@ -207,6 +213,7 @@ class ApplicationUseCaseTest {
         when(loanTypeRepository.findByName("Prestamo Personal")).thenReturn(Mono.just(loanType));
         when(stateRepository.findByName("Pendiente de revision")).thenReturn(Mono.just(state));
         when(applicationRepository.save(any(Application.class))).thenReturn(Mono.just(savedApplication));
+        when(capacityEvaluationRepository.isAutomaticValidationEnabled(1L)).thenReturn(Mono.just(false));
 
         // Act
         Mono<Application> result = applicationUseCase.createApplication(
