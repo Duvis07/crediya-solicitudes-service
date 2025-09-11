@@ -111,7 +111,7 @@ public class Handler {
                 .flatMap(capacityCalculationUseCase::sendForCapacityCalculation)
                 .flatMap(messageId -> {
                     log.info("Waiting for capacity calculation result with messageId: {}", messageId);
-                    return capacityResultCache.waitForResult(messageId, Duration.ofSeconds(25))
+                    return capacityResultCache.waitForResult(messageId, Duration.ofSeconds(20))
                             .flatMap(result -> {
                                 CalculateCapacityResponse response = CalculateCapacityResponse.builder()
                                         .decision(result.getDecision())
