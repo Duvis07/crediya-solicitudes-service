@@ -122,7 +122,7 @@ aws:
     queues:
       solicitudes-capacidad: ${AWS_SQS_QUEUES_SOLICITUDES_CAPACIDAD:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/solicitudes-capacidad-queue}
       resultados-evaluacion: ${AWS_SQS_QUEUES_RESULTADOS_EVALUACION:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue}
-      manual-decision: ${AWS_SQS_QUEUES_MANUAL_DECISION:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/manual-decision-queue}
+      manual-decision: ${AWS_SQS_QUEUES_MANUAL_DECISION:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/notificaciones-manuales-queue}
       loan-approved-events: ${AWS_SQS_QUEUES_LOAN_APPROVED_EVENTS:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/loan-approved-events-queue}
 
 
