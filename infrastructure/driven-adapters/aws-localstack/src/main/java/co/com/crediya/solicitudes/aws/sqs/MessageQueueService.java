@@ -62,8 +62,8 @@ public class MessageQueueService {
 
                         SendMessageResponse response = sqsClient.sendMessage(sendMessageRequest);
 
-                        log.info("Application {} sent successfully to SQS. MessageId: {}",
-                                solicitudDto.getSolicitudId(), response.messageId());
+                        log.info("Application {} sent successfully to SQS. MessageId: {}, queue: {}",
+                                solicitudDto.getSolicitudId(), response.messageId(), capacityQueueUrl);
 
                         return response.messageId();
 
@@ -122,8 +122,8 @@ public class MessageQueueService {
 
                         SendMessageResponse response = sqsClient.sendMessage(sendMessageRequest);
 
-                        log.info("Manual notification for application {} sent successfully to SQS. MessageId: {}",
-                                applicationId, response.messageId());
+                        log.info("Manual notification for application {} sent successfully to SQS. MessageId: {}, queue: {}",
+                                applicationId, response.messageId(), manualNotificationsQueueUrl);
 
                         return response.messageId();
 
