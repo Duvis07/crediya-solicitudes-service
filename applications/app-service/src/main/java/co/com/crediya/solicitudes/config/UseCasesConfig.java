@@ -8,6 +8,7 @@ import co.com.crediya.solicitudes.model.state.gateways.StateRepository;
 import co.com.crediya.solicitudes.usecase.application.ApplicationUseCase;
 import co.com.crediya.solicitudes.usecase.application.UpdateApplicationStatusUseCase;
 import co.com.crediya.solicitudes.model.lambda.gateways.ManualNotificationRepository;
+import co.com.crediya.solicitudes.model.events.gateways.ReportEventRepository;
 import co.com.crediya.solicitudes.usecase.capacity.CapacityCalculationUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,8 +29,9 @@ public class UseCasesConfig {
     public UpdateApplicationStatusUseCase updateApplicationStatusUseCase(
             ApplicationRepository applicationRepository,
             StateRepository stateRepository,
-            ManualNotificationRepository manualNotificationRepository) {
-        return new UpdateApplicationStatusUseCase(applicationRepository, stateRepository, manualNotificationRepository);
+            ManualNotificationRepository manualNotificationRepository,
+            ReportEventRepository reportEventRepository) {
+        return new UpdateApplicationStatusUseCase(applicationRepository, stateRepository, manualNotificationRepository, reportEventRepository);
     }
 
     @Bean
