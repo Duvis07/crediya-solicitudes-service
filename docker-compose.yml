@@ -55,18 +55,37 @@ services:
 
       # JWT Configuration
       JWT_SECRET: mySecretKeyForCrediyaAuthenticationServiceThatIsLongEnoughForHS256
-      JWT_JWK_SET_URI: http://localhost:8080/.well-known/jwks.json
-      JWT_ISSUER_URI: http://localhost:8080
+      JWT_JWK_SET_URI: http://authentication-service:8080/.well-known/jwks.json
+      JWT_ISSUER_URI: http://authentication-service:8080
       
       # CORS Configuration
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://authentication-service:8080,http://solicitudes-service:8081
       
       # Logging
       LOGGING_LEVEL_ROOT: WARN
       LOGGING_LEVEL_CO_COM_CREDIYA: INFO
       
       # Spring Profiles
-      SPRING_PROFILES_ACTIVE: local
+      SPRING_PROFILES_ACTIVE: docker
+      
+      # AWS/LocalStack Configuration
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://host.containers.internal:4566
+      AWS_SQS_ENDPOINT: http://host.containers.internal:4566
+      AWS_SQS_QUEUES_SOLICITUDES_CAPACIDAD: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/solicitudes-capacidad-queue
+      AWS_SQS_QUEUES_RESULTADOS_EVALUACION: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue
+      AWS_SQS_QUEUES_MANUAL_DECISION: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/manual-decision-queue
+      AWS_SQS_QUEUES_LOAN_APPROVED_EVENTS: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/loan-approved-events-queue
+      
+      # Email Configuration
+      SPRING_MAIL_HOST: host.containers.internal
+      SPRING_MAIL_PORT: 1025
+      SPRING_MAIL_USERNAME: 
+      SPRING_MAIL_PASSWORD: 
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
       
     ports:
       - "8081:8081"

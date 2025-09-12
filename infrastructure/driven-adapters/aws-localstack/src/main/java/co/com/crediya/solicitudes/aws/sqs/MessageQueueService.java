@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -23,8 +24,11 @@ public class MessageQueueService {
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper;
 
-    private static final String CAPACITY_QUEUE_URL = "http://localhost:4566/000000000000/solicitudes-capacidad-queue";
-    private static final String MANUAL_NOTIFICATIONS_QUEUE_URL = "http://localhost:4566/000000000000/notificaciones-manuales-queue";
+    @Value("${aws.sqs.queues.solicitudes-capacidad}")
+    private String capacityQueueUrl;
+    
+    @Value("${aws.sqs.queues.manual-decision}")
+    private String manualNotificationsQueueUrl;
     private static final String DATA_TYPE_STRING = "String";
 
     /**
@@ -38,7 +42,7 @@ public class MessageQueueService {
                         String messageBody = objectMapper.writeValueAsString(solicitudDto);
 
                         SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
-                                .queueUrl(CAPACITY_QUEUE_URL)
+                                .queueUrl(capacityQueueUrl)
                                 .messageBody(messageBody)
                                 .messageAttributes(Map.of(
                                         "solicitudId", MessageAttributeValue.builder()
@@ -98,7 +102,7 @@ public class MessageQueueService {
                         log.info("Generated message body: {}", messageBody);
 
                         SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
-                                .queueUrl(MANUAL_NOTIFICATIONS_QUEUE_URL)
+                                .queueUrl(manualNotificationsQueueUrl)
                                 .messageBody(messageBody)
                                 .messageAttributes(Map.of(
                                         "applicationId", MessageAttributeValue.builder()

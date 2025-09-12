@@ -9,6 +9,7 @@ import co.com.crediya.solicitudes.aws.email.ManualEmailNotificationService;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,8 @@ public class EvaluationResultConsumer {
     private final ManualEmailNotificationService manualEmailNotificationService;
     private final CapacityResultCache capacityResultCache;
 
-    private static final String RESULTS_QUEUE_URL = "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue";
+    @Value("${aws.sqs.queues.resultados-evaluacion}")
+    private String resultsQueueUrl;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     @EventListener(ApplicationReadyEvent.class)
@@ -65,7 +67,7 @@ public class EvaluationResultConsumer {
     private void consumeMessages() {
         try {
             ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
-                    .queueUrl(RESULTS_QUEUE_URL)
+                    .queueUrl(resultsQueueUrl)
                     .maxNumberOfMessages(10)
                     .waitTimeSeconds(5) // Reduce long polling to avoid timeouts
                     .messageAttributeNames("All")
@@ -257,7 +259,7 @@ public class EvaluationResultConsumer {
     private void deleteMessage(Message message) {
         try {
             DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
-                    .queueUrl(RESULTS_QUEUE_URL)
+                    .queueUrl(resultsQueueUrl)
                     .receiptHandle(message.receiptHandle())
                     .build();
 
