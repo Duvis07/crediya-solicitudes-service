@@ -12,22 +12,23 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 import java.net.URI;
 
 @Configuration
 public class AwsLocalStackConfig {
 
-    @Value("${aws.localstack.endpoint:http://localhost:4566}")
+    @Value("${AWS_ENDPOINT_URL:http://localhost:4566}")
     private String localStackEndpoint;
 
-    @Value("${aws.region:us-east-1}")
+    @Value("${AWS_REGION:us-east-1}")
     private String awsRegion;
 
-    @Value("${aws.access-key:test}")
+    @Value("${AWS_ACCESS_KEY_ID:test}")
     private String accessKey;
 
-    @Value("${aws.secret-key:test}")
+    @Value("${AWS_SECRET_ACCESS_KEY:test}")
     private String secretKey;
 
     private StaticCredentialsProvider credentialsProvider() {
@@ -85,6 +86,15 @@ public class AwsLocalStackConfig {
     @Bean
     public SesClient sesClient() {
         return SesClient.builder()
+            .endpointOverride(URI.create(localStackEndpoint))
+            .region(Region.of(awsRegion))
+            .credentialsProvider(credentialsProvider())
+            .build();
+    }
+
+    @Bean
+    public SqsAsyncClient sqsAsyncClient() {
+        return SqsAsyncClient.builder()
             .endpointOverride(URI.create(localStackEndpoint))
             .region(Region.of(awsRegion))
             .credentialsProvider(credentialsProvider())
