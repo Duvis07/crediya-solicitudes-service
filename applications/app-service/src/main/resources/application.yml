@@ -12,16 +12,16 @@ spring:
     auto: true
     proxy-target-class: true
   mail:
-    host: ${MAILHOG_SMTP_HOST:localhost}
-    port: ${MAILHOG_SMTP_PORT:1025}
-    username: 
-    password: 
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:false}
           starttls:
-            enable: false
+            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
     from: crediya@localhost
 #  security:
 #    oauth2:
@@ -113,9 +113,16 @@ resilience4j:
 # AWS LocalStack Configuration
 aws:
   localstack:
-    endpoint: ${AWS_LOCALSTACK_ENDPOINT:http://localhost:4566}
-    region: ${AWS_REGION:us-east-1}
-    access-key: ${AWS_ACCESS_KEY:test}
-    secret-key: ${AWS_SECRET_KEY:test}
+    endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}
+  region: ${AWS_REGION:us-east-1}
+  access-key: ${AWS_ACCESS_KEY_ID:test}
+  secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+  sqs:
+    endpoint: ${AWS_SQS_ENDPOINT:http://localhost:4566}
+    queues:
+      solicitudes-capacidad: ${AWS_SQS_QUEUES_SOLICITUDES_CAPACIDAD:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/solicitudes-capacidad-queue}
+      resultados-evaluacion: ${AWS_SQS_QUEUES_RESULTADOS_EVALUACION:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue}
+      manual-decision: ${AWS_SQS_QUEUES_MANUAL_DECISION:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/manual-decision-queue}
+      loan-approved-events: ${AWS_SQS_QUEUES_LOAN_APPROVED_EVENTS:http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/loan-approved-events-queue}
 
 
