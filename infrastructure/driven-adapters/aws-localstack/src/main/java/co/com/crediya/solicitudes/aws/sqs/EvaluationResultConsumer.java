@@ -7,6 +7,8 @@ import co.com.crediya.solicitudes.model.exceptions.MessageProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import co.com.crediya.solicitudes.aws.email.ManualEmailNotificationService;
 import co.com.crediya.solicitudes.model.application.gateways.CapacityEvaluationRepository;
+import co.com.crediya.solicitudes.model.events.gateways.ReportEventRepository;
+import co.com.crediya.solicitudes.model.events.LoanApprovedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,12 +33,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class EvaluationResultConsumer {
 
+    private static final String APROBADO = "APROBADO";
+    private static final String RECHAZADO = "RECHAZADO";
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper;
     private final CapacityEvaluationRepository capacityEvaluationRepository;
     private final AutomaticEmailNotificationService automaticEmailNotificationService;
     private final ManualEmailNotificationService manualEmailNotificationService;
     private final CapacityResultCache capacityResultCache;
+    private final ReportEventRepository reportEventRepository;
 
     @Value("${aws.sqs.queues.resultados-evaluacion}")
     private String resultsQueueUrl;
@@ -205,7 +210,7 @@ public class EvaluationResultConsumer {
                 )
                 .flatMap(application -> {
                     Mono<Void> emailMono = switch (resultado.getDecision()) {
-                        case "APROBADO" -> automaticEmailNotificationService.sendPaymentPlanNotification(
+                        case APROBADO -> automaticEmailNotificationService.sendPaymentPlanNotification(
                                 resultado.getEmail(),
                                 resultado.getNombreCompleto(),
                                 resultado.getSolicitudId(),
@@ -213,7 +218,7 @@ public class EvaluationResultConsumer {
                                 resultado.getCuotaCalculada(),
                                 resultado.getPlanPagos()
                         );
-                        case "RECHAZADO" -> automaticEmailNotificationService.sendRejectionNotification(
+                        case RECHAZADO -> automaticEmailNotificationService.sendRejectionNotification(
                                 resultado.getEmail(),
                                 resultado.getNombreCompleto(),
                                 resultado.getSolicitudId(),
@@ -225,7 +230,8 @@ public class EvaluationResultConsumer {
                         }
                     };
 
-                    return emailMono.retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
+                    // Apply retry logic to email notification
+                    Mono<Void> emailWithRetry = emailMono.retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
                             .maxBackoff(Duration.ofSeconds(5))
                             .doBeforeRetry(retrySignal ->
                                     log.warn("Retrying email notification for application {}, attempt: {}",
@@ -235,6 +241,25 @@ public class EvaluationResultConsumer {
                                         retrySignal.totalRetries(), resultado.getSolicitudId());
                                 return retrySignal.failure();
                             }));
+
+                    // Send report event for approved loans
+                    if (APROBADO.equalsIgnoreCase(resultado.getDecision())) {
+                        LoanApprovedEvent event = LoanApprovedEvent.createLoanApprovedEvent(
+                                resultado.getSolicitudId(),
+                                resultado.getEmail(),
+                                application.getAmount()
+                        );
+                        
+                        Mono<Void> reportEventMono = reportEventRepository.sendLoanApprovedEvent(event)
+                                .onErrorResume(eventError -> {
+                                    log.error("Failed to send loan approved event to reportes for application: {}", resultado.getSolicitudId(), eventError);
+                                    return Mono.empty();
+                                });
+
+                        return Mono.when(emailWithRetry, reportEventMono);
+                    } else {
+                        return emailWithRetry;
+                    }
                 })
                 .doOnSuccess(v -> log.info("Automatic evaluation processed successfully for application: {}",
                         resultado.getSolicitudId()))
