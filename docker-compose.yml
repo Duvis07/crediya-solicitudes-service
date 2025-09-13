@@ -1,6 +1,43 @@
 version: '3.8'
 
 services:
+  # LocalStack for AWS services (Podman compatible)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: crediya-localstack
+    environment:
+      - SERVICES=sqs,dynamodb,s3
+      - DEBUG=0
+      - DATA_DIR=/var/lib/localstack
+      - LAMBDA_EXECUTOR=local
+      - SKIP_INFRA_DOWNLOADS=1
+      - PERSISTENCE=1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+    networks:
+      - crediya-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: crediya-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - crediya-network
+    restart: unless-stopped
+
   # PostgreSQL Database for Solicitudes
   postgres-solicitudes:
     image: postgres:15-alpine
@@ -72,15 +109,15 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
-      AWS_ENDPOINT_URL: http://host.containers.internal:4566
-      AWS_SQS_ENDPOINT: http://host.containers.internal:4566
-      AWS_SQS_QUEUES_SOLICITUDES_CAPACIDAD: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/solicitudes-capacidad-queue
-      AWS_SQS_QUEUES_RESULTADOS_EVALUACION: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resultados-evaluacion-queue
-      AWS_SQS_QUEUES_MANUAL_DECISION: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/notificaciones-manuales-queue
-      AWS_SQS_QUEUES_LOAN_APPROVED_EVENTS: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/loan-approved-events-queue
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_SQS_ENDPOINT: http://localstack:4566
+      AWS_SQS_QUEUES_SOLICITUDES_CAPACIDAD: solicitudes-capacidad-queue
+      AWS_SQS_QUEUES_RESULTADOS_EVALUACION: resultados-evaluacion-queue
+      AWS_SQS_QUEUES_MANUAL_DECISION: notificaciones-manuales-queue
+      AWS_SQS_QUEUES_LOAN_APPROVED_EVENTS: loan-approved-events-queue
       
       # Email Configuration
-      SPRING_MAIL_HOST: host.containers.internal
+      SPRING_MAIL_HOST: mailhog
       SPRING_MAIL_PORT: 1025
       SPRING_MAIL_USERNAME: 
       SPRING_MAIL_PASSWORD: 
@@ -91,6 +128,8 @@ services:
       - "8081:8081"
     depends_on:
       postgres-solicitudes:
+        condition: service_healthy
+      localstack:
         condition: service_healthy
     networks:
       - crediya-network
@@ -111,4 +150,6 @@ networks:
 
 volumes:
   postgres_solicitudes_data:
+    driver: local
+  localstack_data:
     driver: local
